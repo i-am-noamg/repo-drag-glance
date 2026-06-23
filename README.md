@@ -1,0 +1,48 @@
+# vprdashboard
+
+Git-based **repo health** metrics for VP R&D and staff engineers: churn, ownership
+(`shortlog`), bug hotspots, delivery pace, and firefighting-style commits, plus
+lightweight alert hints.
+
+Detailed behavior and metric definitions live in [`docs/git-metrics.md`](docs/git-metrics.md).
+
+## Quick start
+
+Requirements: **Rust** (see `rust-version` in [`Cargo.toml`](Cargo.toml)), **git** on `PATH`, and a repo with **at least one commit**.
+
+```bash
+cargo build
+cargo run -- scan --repo .
+```
+
+JSON:
+
+```bash
+cargo run -- scan --repo . --format json
+```
+
+Install the binary into `~/.cargo/bin`:
+
+```bash
+cargo install --path .
+vprdashboard scan --repo /path/to/repo
+```
+
+## Documentation
+
+- [`docs/README.md`](docs/README.md) — doc index for humans and agents
+- [`docs/cli-usage.md`](docs/cli-usage.md) — commands, flags, install, tests
+- [`docs/architecture.md`](docs/architecture.md) — Rust layout and guardrails
+- [`docs/git-metrics.md`](docs/git-metrics.md) — what each signal means
+
+Inspired by [The Git Commands I Run Before Reading Any Code](https://piechowski.io/post/git-commands-before-reading-code/).
+
+## Contributing
+
+```bash
+cargo test
+cargo fmt --all
+cargo clippy --all-targets
+```
+
+CI runs fmt, clippy, and tests (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).

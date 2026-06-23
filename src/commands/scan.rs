@@ -1,0 +1,26 @@
+use anyhow::Context;
+
+use crate::alerts;
+use crate::cli::CommonOpts;
+use crate::git;
+use crate::metrics::{self, ScanOptions};
+use crate::report;
+
+pub fn run_scan(common: &CommonOpts) -> anyhow::Result<()> {
+    git::check_has_commits(&common.repo).context("repository check")?;
+    let opts = ScanOptions {
+        repo: &common.repo,
+        since: &common.since,
+        top: common.top,
+    };
+    let metrics = metrics::run_all(&opts).context("collect git metrics")?;
+    let repo = common
+        .repo
+        .canonicalize()
+        .unwrap_or_else(|_| common.repo.clone())
+        .display()
+        .to_string();
+    let report = alerts::build_report(repo, common.since.clone(), metrics);
+    report::print_report(&report, common.format).context("render report")?;
+    Ok(())
+}
