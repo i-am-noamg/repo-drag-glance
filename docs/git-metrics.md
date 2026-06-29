@@ -1,17 +1,18 @@
 # Git Health Metrics
 
-This dashboard starts with a small set of git-derived signals. Each metric
-should map to a simple card in the UI with a short explanation and trend.
+Canonical source: [`docs/blogpost.md`](blogpost.md) — five git commands run before reading code.
 
 ## 1) High-churn files
 
-Shows the most-changed files in a time window.
+Run from source directories (`src/`, `app/`), not the repo root — lockfiles and generated files dominate otherwise.
 
 Command:
 
 ```bash
 git log --format=format: --name-only --since="1 year ago" | sort | uniq -c | sort -nr | head -20
 ```
+
+CLI: `--source-dir src` (repeatable), `--since "1 year ago"`, `--top 20`.
 
 Why it matters:
 
@@ -20,45 +21,43 @@ Why it matters:
 
 ## 2) Bus factor / ownership concentration
 
-Shows who commits most often.
-
-Command:
+Full history on the current branch (`HEAD`):
 
 ```bash
 git shortlog -sn --no-merges
 ```
 
-When driving `git` from a subprocess, pass an explicit revision (this tool uses
-`HEAD`, i.e. the current branch). With no revision, `shortlog` reads commit
-objects from **stdin**; a closed stdin yields an empty list and looks like
-“zero contributors”. We avoid `--all` here: it walks every ref under `refs/`
-and can double-count and include unrelated branches.
+Secondary window for departed-contributor check:
+
+```bash
+git shortlog -sn --no-merges --since="6 months ago"
+```
+
+CLI: `--recent-since "6 months ago"`. The tool passes `HEAD` explicitly so `shortlog` does not read from stdin (empty under a closed stdin in subprocesses).
 
 Why it matters:
 
 - If one person dominates, a departure creates knowledge risk.
-- Compare against a recent window to see if key owners are still active.
+- If the top contributor from full history is absent in the recent window, flag it immediately.
 
 ## 3) Bug hotspots
 
-Finds files that appear in commits with bug-like keywords.
-
-Command:
+Same source-dir scoping as churn. Full history (no `--since` in the blog command):
 
 ```bash
 git log -i -E --grep="fix|bug|broken" --name-only --format='' | sort | uniq -c | sort -nr | head -20
 ```
 
+CLI: `--source-dir src` (repeatable), `--top 20`.
+
 Why it matters:
 
 - Frequent bug fixes in the same files are a strong quality signal.
-- This depends on commit message discipline.
+- Compare against churn hotspots; overlap is highest risk.
 
 ## 4) Delivery pace
 
-Commit volume by month.
-
-Command:
+Commit volume by month, full history:
 
 ```bash
 git log --format='%ad' --date=format:'%Y-%m' | sort | uniq -c
@@ -71,20 +70,22 @@ Why it matters:
 
 ## 5) Firefighting frequency
 
-Counts explicit reverts or emergency terms.
-
-Command:
-
 ```bash
 git log --oneline --since="1 year ago" | grep -iE 'revert|hotfix|emergency|rollback'
 ```
+
+CLI: `--since "1 year ago"`.
 
 Why it matters:
 
 - Frequent reverts indicate fragile deployment or low confidence in changes.
 
-## Initial dashboard ideas
+## Per-metric `--since` rules
 
-- A list of metric cards with counts and a short interpretation.
-- A drill-down table that links top files to their recent commits.
-- A simple alert threshold (for example, churn or bug hotspots above a limit).
+| Metric | `--since` | `--recent-since` | `--source-dir` |
+|--------|-----------|------------------|----------------|
+| churn | yes (default `1 year ago`) | — | yes |
+| bus_factor | no (full history) | yes (alerts) | no |
+| bug_hotspots | no (full history) | — | yes |
+| delivery_pace | no (full history) | — | no |
+| firefighting | yes (default `1 year ago`) | — | no |

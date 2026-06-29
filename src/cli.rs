@@ -38,9 +38,18 @@ pub struct CommonOpts {
     #[arg(long, default_value = ".")]
     pub repo: PathBuf,
 
-    /// Time window passed to `git --since` where applicable.
+    /// Source directories for file-based metrics (churn, bug_hotspots).
+    /// Repeatable, e.g. `--source-dir src --source-dir apps`.
+    #[arg(long = "source-dir")]
+    pub source_dirs: Vec<String>,
+
+    /// Time window for churn and firefighting (`git --since`).
     #[arg(long, default_value = "1 year ago")]
     pub since: String,
+
+    /// Recent window for bus-factor departed-contributor check.
+    #[arg(long, default_value = "6 months ago")]
+    pub recent_since: String,
 
     /// Max rows for file/author tables.
     #[arg(long, default_value_t = 20)]

@@ -1,15 +1,18 @@
 use std::path::Path;
 
 use crate::git::{
-    count_by_month, count_files_per_commit, count_firefighting_lines, log_bug_hotspots,
-    log_commit_months, log_name_only_since, log_oneline_since, parse_shortlog, shortlog_sn,
-    top_n_counts,
+    count_by_month, count_firefighting_lines, count_path_lines, log_bug_hotspots,
+    log_commit_months, log_name_only_since, log_oneline_since, parse_shortlog, shortlog_sn_all,
+    shortlog_sn_since, top_n_counts,
 };
 use crate::model::{MetricId, MetricResult, MetricRow};
 use crate::git::GitError;
 
-/// Default `--since` for churn / bugs / firefighting when not specified.
+/// Default `--since` for churn / firefighting when not specified.
 pub const DEFAULT_SINCE: &str = "1 year ago";
+
+/// Default recent window for bus-factor secondary shortlog.
+pub const DEFAULT_RECENT_SINCE: &str = "6 months ago";
 
 /// Default number of rows for file-based metrics.
 pub const DEFAULT_TOP: usize = 20;
@@ -17,12 +20,20 @@ pub const DEFAULT_TOP: usize = 20;
 pub struct ScanOptions<'a> {
     pub repo: &'a Path,
     pub since: &'a str,
+    pub recent_since: &'a str,
+    pub source_dirs: &'a [String],
     pub top: usize,
 }
 
+fn pathspec_refs(source_dirs: &[String]) -> Vec<String> {
+    source_dirs.to_vec()
+}
+
 pub fn metric_churn(opts: &ScanOptions) -> Result<MetricResult, GitError> {
-    let lines = log_name_only_since(opts.repo, opts.since)?;
-    let counts = count_files_per_commit(&lines);
+    let pathspecs = pathspec_refs(opts.source_dirs);
+    let specs: Vec<&str> = pathspecs.iter().map(String::as_str).collect();
+    let lines = log_name_only_since(opts.repo, opts.since, &specs)?;
+    let counts = count_path_lines(&lines, opts.source_dirs);
     let top = top_n_counts(counts, opts.top);
     let rows: Vec<MetricRow> = top
         .iter()
@@ -43,7 +54,7 @@ pub fn metric_churn(opts: &ScanOptions) -> Result<MetricResult, GitError> {
 }
 
 pub fn metric_bus_factor(opts: &ScanOptions) -> Result<MetricResult, GitError> {
-    let text = shortlog_sn(opts.repo, Some(opts.since))?;
+    let text = shortlog_sn_all(opts.repo)?;
     let parsed = parse_shortlog(&text);
     let rows: Vec<MetricRow> = parsed
         .iter()
@@ -55,7 +66,7 @@ pub fn metric_bus_factor(opts: &ScanOptions) -> Result<MetricResult, GitError> {
         })
         .collect();
     let total: u64 = parsed.iter().map(|(_, n)| n).sum();
-    let summary = format!("{} contributors (window), {} commits", rows.len(), total);
+    let summary = format!("{} contributors, {} commits (full history on HEAD)", rows.len(), total);
     Ok(MetricResult {
         id: MetricId::BusFactor,
         label: MetricId::BusFactor.label().to_string(),
@@ -65,9 +76,19 @@ pub fn metric_bus_factor(opts: &ScanOptions) -> Result<MetricResult, GitError> {
     })
 }
 
+/// Recent-window shortlog for bus-factor alerts (not a standalone metric).
+pub fn bus_factor_recent_authors(
+    opts: &ScanOptions,
+) -> Result<Vec<(String, u64)>, GitError> {
+    let text = shortlog_sn_since(opts.repo, opts.recent_since)?;
+    Ok(parse_shortlog(&text))
+}
+
 pub fn metric_bug_hotspots(opts: &ScanOptions) -> Result<MetricResult, GitError> {
-    let lines = log_bug_hotspots(opts.repo, opts.since)?;
-    let counts = count_files_per_commit(&lines);
+    let pathspecs = pathspec_refs(opts.source_dirs);
+    let specs: Vec<&str> = pathspecs.iter().map(String::as_str).collect();
+    let lines = log_bug_hotspots(opts.repo, &specs)?;
+    let counts = count_path_lines(&lines, opts.source_dirs);
     let top = top_n_counts(counts, opts.top);
     let rows: Vec<MetricRow> = top
         .iter()
@@ -87,8 +108,8 @@ pub fn metric_bug_hotspots(opts: &ScanOptions) -> Result<MetricResult, GitError>
     })
 }
 
-pub fn metric_delivery_pace(_opts: &ScanOptions) -> Result<MetricResult, GitError> {
-    let months = log_commit_months(_opts.repo)?;
+pub fn metric_delivery_pace(opts: &ScanOptions) -> Result<MetricResult, GitError> {
+    let months = log_commit_months(opts.repo)?;
     let counts = count_by_month(&months);
     let rows: Vec<MetricRow> = counts
         .iter()

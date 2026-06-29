@@ -1,7 +1,7 @@
 # CLI Architecture (Rust)
 
-This repo ships a Rust CLI that computes git-based health signals. It stays
-simple, fast, and cross-platform.
+This repo ships a Rust CLI that runs the five git commands from [`docs/blogpost.md`](blogpost.md).
+It stays simple, fast, and cross-platform.
 
 ## Goals
 
@@ -10,7 +10,7 @@ simple, fast, and cross-platform.
   pipelines).
 - Small surface area; a future web UI can reuse the same **JSON report shape**
   without sharing Rust code.
-- **`docs/`** is the source of truth for humans and agents.
+- **`docs/blogpost.md`** is the canonical spec for metric behavior.
 
 ## Crate layout
 
@@ -50,24 +50,32 @@ vprdashboard/
 5. `alerts::compute_alerts` → attach to `ScanReport`.
 6. `report::render` → table or JSON.
 
+## Per-metric git invocations
+
+| Metric | Git args | `--since` | `--source-dir` |
+|--------|----------|-----------|----------------|
+| churn | `log --format=format: --name-only --since … [-- pathspecs]` | yes | pathspec + post-filter |
+| bus_factor | `shortlog -sn --no-merges HEAD` (+ recent window for alerts) | no | no |
+| bug_hotspots | `log -i -E --grep=fix\|bug\|broken --name-only --format= [-- pathspecs]` | no | pathspec + post-filter |
+| delivery_pace | `log --format=%ad --date=format:%Y-%m` | no | no |
+| firefighting | `log --oneline --since …` + keyword filter in Rust | yes | no |
+
+File metrics count non-empty path lines (blog: `sort | uniq -c`), optionally filtered to `--source-dir` prefixes.
+
 ## Git subprocess rules
 
 - **Stdin is always closed** (`Stdio::null()` in `git_stdout`). Some git
   commands, notably `git shortlog` **without a revision**, read commits from
   stdin; with a null stdin that looks like “zero contributors”. We always pass
-  an explicit **`HEAD`** for shortlog (current branch only; we avoid `--all`
-  so refs under `refs/` are not all walked).
+  an explicit **`HEAD`** for shortlog (current branch only).
 - Use `git -C <repo> …` rather than `current_dir` + relative git.
 
 ## Metric / report types
 
 - **`MetricId`**: stable ids (`churn`, `bus_factor`, …) for CLI and JSON.
 - **`MetricResult`**: id, label, summary, optional `rows`, optional `scalar`.
-- **`ScanReport`**: `repo`, `since`, `metrics`, `alerts`.
+- **`ScanReport`**: `repo`, `since`, `recent_since`, `source_dirs`, `metrics`, `alerts`.
 - **`AlertHint`**: `severity`, `code`, `message`, optional `evidence`.
-
-There is no separate `MetricDefinition` type yet; `explain` and docs carry
-human-readable definitions.
 
 ## Guardrails
 
@@ -91,7 +99,7 @@ Dev: `tempfile`, `serde_json` (integration tests).
 
 - **`scan`** — all five metrics + alerts; `--format table|json`.
 - **`metrics <name>`** — one metric + alerts for that slice.
-- **`explain <name>`** — what the metric means and equivalent `git` args.
+- **`explain <name>`** — blogpost command + CLI git equivalent.
 
 ## Testing
 

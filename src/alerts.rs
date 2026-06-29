@@ -1,3 +1,4 @@
+use crate::metrics::{self, ScanOptions};
 use crate::model::{AlertHint, AlertSeverity, MetricId, MetricResult, ScanReport};
 
 const OVERLAP_TOP_FILES: usize = 5;
@@ -5,8 +6,26 @@ const BUS_FACTOR_DOMINANCE: f64 = 0.60;
 const FIREFIGHTING_WARN_PER_YEAR: u64 = 8;
 
 /// Derive simple leadership hints from computed metrics.
-pub fn compute_alerts(metrics: &[MetricResult]) -> Vec<AlertHint> {
+pub fn compute_alerts(
+    metrics: &[MetricResult],
+    source_dirs: &[String],
+    recent_since: &str,
+    opts: &ScanOptions<'_>,
+) -> Vec<AlertHint> {
     let mut alerts = Vec::new();
+
+    if source_dirs.is_empty()
+        && metrics
+            .iter()
+            .any(|m| m.id == MetricId::Churn || m.id == MetricId::BugHotspots)
+    {
+        alerts.push(AlertHint {
+            severity: AlertSeverity::Info,
+            code: "source_dir_unset".to_string(),
+            message: "No --source-dir set; file metrics include the whole repo. The blog runs churn/bug commands from src/ or app/ to avoid lockfiles and generated files.".to_string(),
+            evidence: None,
+        });
+    }
 
     let churn_files = file_keys(metrics, MetricId::Churn, OVERLAP_TOP_FILES);
     let bug_files = file_keys(metrics, MetricId::BugHotspots, OVERLAP_TOP_FILES);
@@ -34,17 +53,31 @@ pub fn compute_alerts(metrics: &[MetricResult]) -> Vec<AlertHint> {
                     severity: AlertSeverity::Warning,
                     code: "bus_factor_dominance".to_string(),
                     message: format!(
-                        "Top contributor authored {:.0}% of commits in the window.",
+                        "Top contributor authored {:.0}% of commits (full history on HEAD).",
                         ratio * 100.0
                     ),
                     evidence: Some(format!("{top_name} ({top_n}/{total})")),
                 });
             }
         }
+
+        if let Ok(recent) = metrics::bus_factor_recent_authors(opts) {
+            let recent_names: std::collections::HashSet<_> =
+                recent.iter().map(|(n, _)| n.as_str()).collect();
+            if !recent_names.contains(top_name.as_str()) {
+                alerts.push(AlertHint {
+                    severity: AlertSeverity::Warning,
+                    code: "departed_top_contributor".to_string(),
+                    message: format!(
+                        "Top contributor \"{top_name}\" has no commits since {recent_since} on HEAD."
+                    ),
+                    evidence: Some(format!("recent_since={recent_since}")),
+                });
+            }
+        }
     }
 
     if let Some(n) = scalar(metrics, MetricId::Firefighting) {
-        // Rough annualized bar: if window is ~1 year, n > threshold warns.
         if n >= FIREFIGHTING_WARN_PER_YEAR {
             alerts.push(AlertHint {
                 severity: AlertSeverity::Warning,
@@ -69,11 +102,20 @@ pub fn compute_alerts(metrics: &[MetricResult]) -> Vec<AlertHint> {
     alerts
 }
 
-pub fn build_report(repo: String, since: String, metrics: Vec<MetricResult>) -> ScanReport {
-    let alerts = compute_alerts(&metrics);
+pub fn build_report(
+    repo: String,
+    since: String,
+    recent_since: String,
+    source_dirs: Vec<String>,
+    metrics: Vec<MetricResult>,
+    opts: &ScanOptions<'_>,
+) -> ScanReport {
+    let alerts = compute_alerts(&metrics, &source_dirs, &recent_since, opts);
     ScanReport {
         repo,
         since,
+        recent_since,
+        source_dirs,
         metrics,
         alerts,
     }
@@ -102,7 +144,7 @@ fn top_author_share(metrics: &[MetricResult], id: MetricId) -> Option<(String, u
     let m = metrics.iter().find(|m| m.id == id)?;
     let rows = m.rows.as_ref()?;
     let top = rows.first()?;
-    let total: u64 = rows.iter().map(|r| r.value).sum();
+    let total = m.scalar.unwrap_or_else(|| rows.iter().map(|r| r.value).sum());
     Some((top.key.clone(), top.value, total))
 }
 
@@ -132,8 +174,19 @@ mod tests {
     use super::*;
     use crate::model::MetricRow;
 
+    fn test_opts() -> ScanOptions<'static> {
+        ScanOptions {
+            repo: std::path::Path::new("."),
+            since: "1 year ago",
+            recent_since: "6 months ago",
+            source_dirs: &[],
+            top: 20,
+        }
+    }
+
     #[test]
     fn overlap_alert() {
+        let opts = test_opts();
         let metrics = vec![
             MetricResult {
                 id: MetricId::Churn,
@@ -158,7 +211,8 @@ mod tests {
                 scalar: None,
             },
         ];
-        let a = compute_alerts(&metrics);
+        let a = compute_alerts(&metrics, &[], "6 months ago", &opts);
         assert!(a.iter().any(|x| x.code == "churn_and_bug_overlap"));
+        assert!(a.iter().any(|x| x.code == "source_dir_unset"));
     }
 }

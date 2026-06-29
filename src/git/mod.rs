@@ -4,7 +4,7 @@ mod run;
 pub use error::GitError;
 pub use run::git_stdout;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::Path;
 
 /// Fails when the path is missing, not a git repo, or has no commits yet.
@@ -33,37 +33,35 @@ pub fn log_oneline_since(repo: &Path, since: &str) -> Result<Vec<String>, GitErr
         .collect())
 }
 
-/// Commit hash lines + file paths for churn-style logs.
-pub fn log_name_only_since(repo: &Path, since: &str) -> Result<Vec<String>, GitError> {
-    let out = git_stdout(
-        repo,
-        &[
-            "log",
-            "--since",
-            since,
-            "--name-only",
-            "--format=%H",
-        ],
-    )?;
-    Ok(out.lines().map(str::trim).map(String::from).collect())
+/// Churn-style log: `git log --format=format: --name-only --since=... [-- pathspec...]`
+pub fn log_name_only_since(
+    repo: &Path,
+    since: &str,
+    pathspecs: &[&str],
+) -> Result<Vec<String>, GitError> {
+    let mut args = vec![
+        "log".to_string(),
+        "--format=format:".to_string(),
+        "--name-only".to_string(),
+        "--since".to_string(),
+        since.to_string(),
+    ];
+    append_pathspecs(&mut args, pathspecs);
+    git_stdout_lines(repo, &args)
 }
 
-/// Same as churn but with grep on message.
-pub fn log_bug_hotspots(repo: &Path, since: &str) -> Result<Vec<String>, GitError> {
-    let out = git_stdout(
-        repo,
-        &[
-            "log",
-            "-i",
-            "-E",
-            "--grep=fix|bug|broken",
-            "--since",
-            since,
-            "--name-only",
-            "--format=%H",
-        ],
-    )?;
-    Ok(out.lines().map(str::trim).map(String::from).collect())
+/// Bug hotspot log: `git log -i -E --grep=... --name-only --format= [-- pathspec...]`
+pub fn log_bug_hotspots(repo: &Path, pathspecs: &[&str]) -> Result<Vec<String>, GitError> {
+    let mut args = vec![
+        "log".to_string(),
+        "-i".to_string(),
+        "-E".to_string(),
+        "--grep=fix|bug|broken".to_string(),
+        "--name-only".to_string(),
+        "--format=".to_string(),
+    ];
+    append_pathspecs(&mut args, pathspecs);
+    git_stdout_lines(repo, &args)
 }
 
 /// One line per commit: `%ad` with month format.
@@ -84,23 +82,17 @@ pub fn log_commit_months(repo: &Path) -> Result<Vec<String>, GitError> {
         .collect())
 }
 
-/// `git shortlog -sn --no-merges` for **reachable commits from `HEAD`** (current
-/// checkout), with optional `--since`.
-///
-/// A revision is always passed (`HEAD`). With no revision, `git shortlog`
-/// reads from stdin; our subprocess uses a closed stdin (see `git_stdout`),
-/// which would yield an empty result.
-///
-/// We intentionally do **not** use `--all`: that walks every ref under
-/// `refs/`, which double-counts shared history and pulls in stale branches.
-pub fn shortlog_sn(repo: &Path, since: Option<&str>) -> Result<String, GitError> {
-    match since {
-        None => git_stdout(repo, &["shortlog", "-sn", "--no-merges", "HEAD"]),
-        Some(s) => git_stdout(
-            repo,
-            &["shortlog", "-sn", "--no-merges", "--since", s, "HEAD"],
-        ),
-    }
+/// Full-history shortlog on `HEAD` (blog: `git shortlog -sn --no-merges`).
+pub fn shortlog_sn_all(repo: &Path) -> Result<String, GitError> {
+    git_stdout(repo, &["shortlog", "-sn", "--no-merges", "HEAD"])
+}
+
+/// Recent-window shortlog on `HEAD` (blog: `--since="6 months ago"`).
+pub fn shortlog_sn_since(repo: &Path, since: &str) -> Result<String, GitError> {
+    git_stdout(
+        repo,
+        &["shortlog", "-sn", "--no-merges", "--since", since, "HEAD"],
+    )
 }
 
 /// Parse `git shortlog` lines: "   123\tName"
@@ -118,39 +110,32 @@ pub fn parse_shortlog(text: &str) -> Vec<(String, u64)> {
     out
 }
 
-/// True if line looks like a full or abbreviated git object id (no path slashes).
-pub fn looks_like_commit_hash(line: &str) -> bool {
-    let line = line.trim();
-    if line.is_empty() || line.contains('/') || line.contains('\\') {
-        return false;
+/// True when `path` is under any listed source dir prefix (or when no dirs given).
+pub fn path_matches_source_dirs(path: &str, source_dirs: &[String]) -> bool {
+    if source_dirs.is_empty() {
+        return true;
     }
-    let bytes = line.as_bytes();
-    if bytes.len() < 7 || bytes.len() > 40 {
-        return false;
+    for dir in source_dirs {
+        let prefix = dir.trim_end_matches('/');
+        if path == prefix || path.starts_with(&format!("{prefix}/")) {
+            return true;
+        }
     }
-    bytes.iter().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f' | b'A'..=b'F'))
+    false
 }
 
-/// Count file touches per path: one increment per file per commit (unique files per commit).
-pub fn count_files_per_commit(lines: &[String]) -> HashMap<String, u64> {
+/// Count non-empty path lines (blog: `sort | uniq -c`), optionally filtered by source dirs.
+pub fn count_path_lines(lines: &[String], source_dirs: &[String]) -> HashMap<String, u64> {
     let mut counts: HashMap<String, u64> = HashMap::new();
-    let mut current: HashSet<String> = HashSet::new();
     for line in lines {
         let t = line.trim();
         if t.is_empty() {
             continue;
         }
-        if looks_like_commit_hash(t) {
-            for f in &current {
-                *counts.entry(f.clone()).or_insert(0) += 1;
-            }
-            current.clear();
+        if !path_matches_source_dirs(t, source_dirs) {
             continue;
         }
-        current.insert(t.to_string());
-    }
-    for f in current {
-        *counts.entry(f).or_insert(0) += 1;
+        *counts.entry(t.to_string()).or_insert(0) += 1;
     }
     counts
 }
@@ -187,30 +172,56 @@ pub fn count_firefighting_lines(onelines: &[String]) -> u64 {
         .count() as u64
 }
 
+fn append_pathspecs(args: &mut Vec<String>, pathspecs: &[&str]) {
+    if pathspecs.is_empty() {
+        return;
+    }
+    args.push("--".to_string());
+    args.extend(pathspecs.iter().map(|s| (*s).to_string()));
+}
+
+fn git_stdout_lines(repo: &Path, args: &[String]) -> Result<Vec<String>, GitError> {
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = git_stdout(repo, &refs)?;
+    Ok(out.lines().map(str::trim).map(String::from).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn hash_detection() {
-        assert!(looks_like_commit_hash("a1b2c3d"));
-        assert!(looks_like_commit_hash("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b"));
-        assert!(!looks_like_commit_hash("src/main.rs"));
-        assert!(!looks_like_commit_hash("nothex"));
+    fn count_path_lines_basic() {
+        let lines = vec![
+            "src/a.rs".to_string(),
+            "src/a.rs".to_string(),
+            "README.md".to_string(),
+        ];
+        let m = count_path_lines(&lines, &[]);
+        assert_eq!(m.get("src/a.rs"), Some(&2));
+        assert_eq!(m.get("README.md"), Some(&1));
     }
 
     #[test]
-    fn count_files_per_commit_basic() {
+    fn count_path_lines_source_filter() {
         let lines = vec![
-            "abc1234".to_string(),
-            "a.rs".to_string(),
-            "b.rs".to_string(),
-            "def7890".to_string(),
-            "a.rs".to_string(),
+            "src/a.rs".to_string(),
+            "Cargo.lock".to_string(),
+            "apps/foo.ts".to_string(),
         ];
-        let m = count_files_per_commit(&lines);
-        assert_eq!(m.get("a.rs"), Some(&2));
-        assert_eq!(m.get("b.rs"), Some(&1));
+        let dirs = vec!["src".to_string(), "apps".to_string()];
+        let m = count_path_lines(&lines, &dirs);
+        assert_eq!(m.get("src/a.rs"), Some(&1));
+        assert_eq!(m.get("apps/foo.ts"), Some(&1));
+        assert!(!m.contains_key("Cargo.lock"));
+    }
+
+    #[test]
+    fn path_matches_source_dirs_filter() {
+        let dirs = vec!["src".to_string()];
+        assert!(path_matches_source_dirs("src/lib.rs", &dirs));
+        assert!(path_matches_source_dirs("src", &dirs));
+        assert!(!path_matches_source_dirs("Cargo.lock", &dirs));
     }
 
     #[test]

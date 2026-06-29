@@ -11,7 +11,8 @@ Audience:
 
 Docs:
 
-- `docs/git-metrics.md` - the initial set of git command metrics and how to read them
+- `docs/blogpost.md` - canonical reference: five git commands and workflow
+- `docs/git-metrics.md` - metric definitions aligned with the blogpost
 - `docs/cli-usage.md` - CLI commands, flags, install, and how tests are run
 - `docs/architecture.md` - Rust CLI architecture, layout, and guardrails
 

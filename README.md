@@ -4,7 +4,7 @@ Git-based **repo health** metrics for VP R&D and staff engineers: churn, ownersh
 (`shortlog`), bug hotspots, delivery pace, and firefighting-style commits, plus
 lightweight alert hints.
 
-Detailed behavior and metric definitions live in [`docs/git-metrics.md`](docs/git-metrics.md).
+Detailed behavior and metric definitions live in [`docs/blogpost.md`](docs/blogpost.md).
 
 ## Quick start
 
@@ -12,7 +12,7 @@ Requirements: **Rust** (see `rust-version` in [`Cargo.toml`](Cargo.toml)), **git
 
 ```bash
 cargo build
-cargo run -- scan --repo .
+cargo run -- scan --repo . --source-dir src
 ```
 
 JSON:

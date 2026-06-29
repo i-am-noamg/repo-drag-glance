@@ -19,7 +19,13 @@ fn render_table(report: &ScanReport) -> String {
     use std::fmt::Write;
     let mut buf = String::new();
     writeln!(&mut buf, "Repo: {}", report.repo).unwrap();
-    writeln!(&mut buf, "Since: {}", report.since).unwrap();
+    writeln!(&mut buf, "Since (churn/firefighting): {}", report.since).unwrap();
+    writeln!(&mut buf, "Recent since (bus factor): {}", report.recent_since).unwrap();
+    if report.source_dirs.is_empty() {
+        writeln!(&mut buf, "Source dirs: (none — whole repo for file metrics)").unwrap();
+    } else {
+        writeln!(&mut buf, "Source dirs: {}", report.source_dirs.join(", ")).unwrap();
+    }
     writeln!(&mut buf).unwrap();
     for m in &report.metrics {
         writeln!(&mut buf, "== {} ==", m.label).unwrap();
@@ -64,6 +70,8 @@ mod tests {
         let report = ScanReport {
             repo: "/tmp".into(),
             since: "1 year ago".into(),
+            recent_since: "6 months ago".into(),
+            source_dirs: vec!["src".into()],
             metrics: vec![MetricResult {
                 id: MetricId::Firefighting,
                 label: "x".into(),

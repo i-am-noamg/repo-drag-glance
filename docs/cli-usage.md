@@ -2,6 +2,8 @@
 
 Binary name: `vprdashboard` (same as the Rust package).
 
+Canonical metric definitions: [`docs/blogpost.md`](blogpost.md).
+
 ## Requirements
 
 - `git` on `PATH`
@@ -15,39 +17,44 @@ Binary name: `vprdashboard` (same as the Rust package).
 Runs all five metrics and prints alert hints.
 
 ```bash
-cargo run -- scan
+cargo run -- scan --repo . --source-dir src
 ```
 
 Common flags:
 
 - `--repo <path>` — repository root (default: `.`)
-- `--since <git-date>` — passed to `git --since` where applicable (default: `1 year ago`)
+- `--source-dir <path>` — repeatable; scopes churn and bug_hotspots (blog: run from `src/` or `app/`)
+- `--since <git-date>` — churn and firefighting only (default: `1 year ago`)
+- `--recent-since <git-date>` — bus-factor departed-contributor check (default: `6 months ago`)
 - `--top <n>` — max rows for file/author tables (default: `20`)
 - `--format table|json` — output (default: `table`)
+
+When `--source-dir` is omitted, file metrics scan the whole repo and an info alert reminds you to set source dirs.
 
 JSON example:
 
 ```bash
-cargo run -- scan --format json --repo /path/to/repo
+cargo run -- scan --format json --repo /path/to/repo --source-dir src --source-dir apps
 ```
 
 ### `metrics`
 
 Runs one metric by id or alias:
 
-- `churn` — high-churn files
-- `bus_factor` — `git shortlog` on `HEAD` in the window (avoids stdin-only shortlog; not `--all`)
-- `bug_hotspots` — commits matching fix|bug|broken
+- `churn` — high-churn files (`--since`, `--source-dir`)
+- `bus_factor` — full-history shortlog on `HEAD` (`--recent-since` for alerts)
+- `bug_hotspots` — commits matching fix|bug|broken (`--source-dir`, no `--since`)
 - `delivery_pace` — commits per `YYYY-MM` (full history)
-- `firefighting` — oneline subjects matching revert/hotfix/emergency/rollback
+- `firefighting` — oneline subjects matching revert/hotfix/emergency/rollback (`--since`)
 
 ```bash
-cargo run -- metrics churn --repo . --since "6 months ago"
+cargo run -- metrics churn --repo . --source-dir src --since "1 year ago"
+cargo run -- metrics bus_factor --repo . --recent-since "6 months ago"
 ```
 
 ### `explain`
 
-Prints what a metric means and which `git` arguments the tool uses.
+Prints the blogpost command and the CLI's git equivalent.
 
 ```bash
 cargo run -- explain bus_factor

@@ -118,6 +118,8 @@ pub struct AlertHint {
 pub struct ScanReport {
     pub repo: String,
     pub since: String,
+    pub recent_since: String,
+    pub source_dirs: Vec<String>,
     pub metrics: Vec<MetricResult>,
     pub alerts: Vec<AlertHint>,
 }
