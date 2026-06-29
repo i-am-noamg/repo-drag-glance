@@ -116,6 +116,8 @@ pub struct AlertHint {
 /// Full scan payload for table or JSON output.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScanReport {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
     pub repo: String,
     pub since: String,
     pub recent_since: String,

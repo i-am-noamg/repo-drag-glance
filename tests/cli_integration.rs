@@ -129,12 +129,13 @@ fn scan_json_has_metrics_and_alerts() {
     assert!(ids.contains(&"churn"));
     assert!(ids.contains(&"firefighting"));
 
-    let alerts = v["alerts"].as_array().unwrap();
+    let warnings = v["warnings"].as_array().unwrap();
     assert!(
-        alerts
-            .iter()
-            .any(|a| a.get("code").and_then(|c| c.as_str()) == Some("source_dir_unset")),
-        "expected source_dir_unset alert"
+        warnings.iter().any(|w| {
+            w.as_str()
+                .is_some_and(|s| s.contains("No --source-dir set"))
+        }),
+        "expected source-dir warning at start of output"
     );
 }
 
@@ -243,7 +244,7 @@ fn bug_hotspots_finds_fix_commit_without_since() {
 }
 
 #[test]
-fn source_dir_set_suppresses_unset_alert() {
+fn source_dir_set_suppresses_warning() {
     let dir = tempfile::tempdir().unwrap();
     let repo = dir.path();
     init_fixture_repo(repo);
@@ -260,11 +261,10 @@ fn source_dir_set_suppresses_unset_alert() {
     assert!(out.status.success());
 
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    let alerts = v["alerts"].as_array().unwrap();
+    let warnings = v.get("warnings").and_then(|w| w.as_array());
     assert!(
-        !alerts
-            .iter()
-            .any(|a| a.get("code").and_then(|c| c.as_str()) == Some("source_dir_unset"))
+        warnings.is_none() || warnings.is_some_and(|w| w.is_empty()),
+        "expected no source-dir warning when --source-dir is set"
     );
 }
 

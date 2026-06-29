@@ -74,7 +74,7 @@ File metrics count non-empty path lines (blog: `sort | uniq -c`), optionally fil
 
 - **`MetricId`**: stable ids (`churn`, `bus_factor`, …) for CLI and JSON.
 - **`MetricResult`**: id, label, summary, optional `rows`, optional `scalar`.
-- **`ScanReport`**: `repo`, `since`, `recent_since`, `source_dirs`, `metrics`, `alerts`.
+- **`ScanReport`**: `warnings`, `repo`, `since`, `recent_since`, `source_dirs`, `metrics`, `alerts`.
 - **`AlertHint`**: `severity`, `code`, `message`, optional `evidence`.
 
 ## Guardrails

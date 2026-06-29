@@ -1,5 +1,6 @@
 use crate::metrics::{self, ScanOptions};
 use crate::model::{AlertHint, AlertSeverity, MetricId, MetricResult, ScanReport};
+use crate::report;
 
 const OVERLAP_TOP_FILES: usize = 5;
 const BUS_FACTOR_DOMINANCE: f64 = 0.60;
@@ -8,24 +9,10 @@ const FIREFIGHTING_WARN_PER_YEAR: u64 = 8;
 /// Derive simple leadership hints from computed metrics.
 pub fn compute_alerts(
     metrics: &[MetricResult],
-    source_dirs: &[String],
     recent_since: &str,
     opts: &ScanOptions<'_>,
 ) -> Vec<AlertHint> {
     let mut alerts = Vec::new();
-
-    if source_dirs.is_empty()
-        && metrics
-            .iter()
-            .any(|m| m.id == MetricId::Churn || m.id == MetricId::BugHotspots)
-    {
-        alerts.push(AlertHint {
-            severity: AlertSeverity::Info,
-            code: "source_dir_unset".to_string(),
-            message: "No --source-dir set; file metrics include the whole repo. The blog runs churn/bug commands from src/ or app/ to avoid lockfiles and generated files.".to_string(),
-            evidence: None,
-        });
-    }
 
     let churn_files = file_keys(metrics, MetricId::Churn, OVERLAP_TOP_FILES);
     let bug_files = file_keys(metrics, MetricId::BugHotspots, OVERLAP_TOP_FILES);
@@ -110,8 +97,9 @@ pub fn build_report(
     metrics: Vec<MetricResult>,
     opts: &ScanOptions<'_>,
 ) -> ScanReport {
-    let alerts = compute_alerts(&metrics, &source_dirs, &recent_since, opts);
+    let alerts = compute_alerts(&metrics, &recent_since, opts);
     ScanReport {
+        warnings: report::source_dir_warnings(&metrics, &source_dirs),
         repo,
         since,
         recent_since,
@@ -211,8 +199,7 @@ mod tests {
                 scalar: None,
             },
         ];
-        let a = compute_alerts(&metrics, &[], "6 months ago", &opts);
+        let a = compute_alerts(&metrics, "6 months ago", &opts);
         assert!(a.iter().any(|x| x.code == "churn_and_bug_overlap"));
-        assert!(a.iter().any(|x| x.code == "source_dir_unset"));
     }
 }

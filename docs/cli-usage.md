@@ -29,7 +29,7 @@ Common flags:
 - `--top <n>` — max rows for file/author tables (default: `20`)
 - `--format table|json` — output (default: `table`)
 
-When `--source-dir` is omitted, file metrics scan the whole repo and an info alert reminds you to set source dirs.
+When `--source-dir` is omitted, file metrics scan the whole repo and a warning is printed at the start of the output.
 
 JSON example:
 

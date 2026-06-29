@@ -1,6 +1,20 @@
 use anyhow::Context;
 
-use crate::model::{OutputFormat, ScanReport};
+use crate::model::{MetricId, MetricResult, OutputFormat, ScanReport};
+
+const SOURCE_DIR_WARNING: &str = "No --source-dir set; file metrics include the whole repo. The blog runs churn/bug commands from src/ or app/ to avoid lockfiles and generated files.";
+
+pub fn source_dir_warnings(metrics: &[MetricResult], source_dirs: &[String]) -> Vec<String> {
+    if source_dirs.is_empty()
+        && metrics
+            .iter()
+            .any(|m| m.id == MetricId::Churn || m.id == MetricId::BugHotspots)
+    {
+        vec![format!("Warning: {SOURCE_DIR_WARNING}")]
+    } else {
+        vec![]
+    }
+}
 
 pub fn render(report: &ScanReport, format: OutputFormat) -> anyhow::Result<String> {
     match format {
@@ -18,6 +32,12 @@ pub fn print_report(report: &ScanReport, format: OutputFormat) -> anyhow::Result
 fn render_table(report: &ScanReport) -> String {
     use std::fmt::Write;
     let mut buf = String::new();
+    for w in &report.warnings {
+        writeln!(&mut buf, "{w}").unwrap();
+    }
+    if !report.warnings.is_empty() {
+        writeln!(&mut buf).unwrap();
+    }
     writeln!(&mut buf, "Repo: {}", report.repo).unwrap();
     writeln!(&mut buf, "Since (churn/firefighting): {}", report.since).unwrap();
     writeln!(&mut buf, "Recent since (bus factor): {}", report.recent_since).unwrap();
@@ -68,6 +88,7 @@ mod tests {
     #[test]
     fn json_roundtrip_shape() {
         let report = ScanReport {
+            warnings: vec![],
             repo: "/tmp".into(),
             since: "1 year ago".into(),
             recent_since: "6 months ago".into(),
