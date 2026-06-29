@@ -1,16 +1,22 @@
 use anyhow::bail;
 
 use crate::model::MetricId;
+use crate::report::Style;
 
-pub fn run_explain(name: &str) -> anyhow::Result<()> {
+pub fn run_explain(name: &str, no_color: bool) -> anyhow::Result<()> {
+    let style = Style::new(no_color);
     let Some(id) = MetricId::parse(name) else {
         bail!("unknown metric {:?}; try: churn, bus_factor, bug_hotspots, delivery_pace, firefighting", name);
     };
-    println!("{} ({})", id.label(), id.as_str());
+    println!(
+        "{} ({})",
+        style.section(&id.label()),
+        id.as_str()
+    );
     println!();
-    println!("{}", id.description());
+    println!("{}", style.summary(&id.description()));
     println!();
-    println!("Blogpost command (from docs/blogpost.md):");
+    println!("{}", style.header_label("Blogpost command (from docs/blogpost.md):"));
     println!();
     match id {
         MetricId::Churn => {
@@ -18,17 +24,17 @@ pub fn run_explain(name: &str) -> anyhow::Result<()> {
             println!("  git log --format=format: --name-only --since=\"<since>\" -- <source-dirs>");
             println!("    | sort | uniq -c | sort -nr | head -<top>");
             println!();
-            println!("CLI equivalent:");
+            println!("{}", style.header_label("CLI equivalent:"));
             println!("  git log --format=format: --name-only --since <since> [-- pathspecs]");
             println!("  (paths counted once per log line; filtered to --source-dir prefixes)");
         }
         MetricId::BusFactor => {
             println!("  git shortlog -sn --no-merges");
             println!();
-            println!("Secondary window (departed-contributor check):");
+            println!("{}", style.header_label("Secondary window (departed-contributor check):"));
             println!("  git shortlog -sn --no-merges --since=\"<recent-since>\"");
             println!();
-            println!("CLI equivalent:");
+            println!("{}", style.header_label("CLI equivalent:"));
             println!("  git shortlog -sn --no-merges HEAD");
             println!("  git shortlog -sn --no-merges --since <recent-since> HEAD");
             println!("`HEAD` is passed so shortlog does not read from stdin (empty under closed stdin).");
@@ -38,19 +44,20 @@ pub fn run_explain(name: &str) -> anyhow::Result<()> {
             println!("  git log -i -E --grep=\"fix|bug|broken\" --name-only --format='' -- <source-dirs>");
             println!("    | sort | uniq -c | sort -nr | head -<top>");
             println!();
-            println!("CLI equivalent:");
+            println!("{}", style.header_label("CLI equivalent:"));
             println!("  git log -i -E --grep=fix|bug|broken --name-only --format= [-- pathspecs]");
             println!("  (full history; no --since in the blog command)");
         }
         MetricId::DeliveryPace => {
             println!("  git log --format='%ad' --date=format:'%Y-%m' | sort | uniq -c");
             println!();
-            println!("CLI equivalent: same git args; counts in Rust.");
+            println!("{}", style.header_label("CLI equivalent:"));
+            println!("  same git args; counts in Rust.");
         }
         MetricId::Firefighting => {
             println!("  git log --oneline --since=\"<since>\" | grep -iE 'revert|hotfix|emergency|rollback'");
             println!();
-            println!("CLI equivalent:");
+            println!("{}", style.header_label("CLI equivalent:"));
             println!("  git log --oneline --since <since>");
             println!("  (subjects filtered in Rust for: revert, hotfix, emergency, rollback)");
         }

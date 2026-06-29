@@ -1,6 +1,10 @@
+mod style;
+
 use anyhow::Context;
 
 use crate::model::{MetricId, MetricResult, OutputFormat, ScanReport};
+
+pub use style::Style;
 
 const SOURCE_DIR_WARNING: &str = "No --source-dir set; file metrics include the whole repo. The blog runs churn/bug commands from src/ or app/ to avoid lockfiles and generated files.";
 
@@ -16,40 +20,79 @@ pub fn source_dir_warnings(metrics: &[MetricResult], source_dirs: &[String]) -> 
     }
 }
 
-pub fn render(report: &ScanReport, format: OutputFormat) -> anyhow::Result<String> {
+pub fn render(report: &ScanReport, format: OutputFormat, no_color: bool) -> anyhow::Result<String> {
     match format {
         OutputFormat::Json => serde_json::to_string_pretty(report).context("serialize JSON"),
-        OutputFormat::Table => Ok(render_table(report)),
+        OutputFormat::Table => Ok(render_table(report, Style::new(no_color))),
     }
 }
 
-pub fn print_report(report: &ScanReport, format: OutputFormat) -> anyhow::Result<()> {
-    let s = render(report, format)?;
+pub fn print_report(
+    report: &ScanReport,
+    format: OutputFormat,
+    no_color: bool,
+) -> anyhow::Result<()> {
+    let s = render(report, format, no_color)?;
     println!("{s}");
     Ok(())
 }
 
-fn render_table(report: &ScanReport) -> String {
+fn render_table(report: &ScanReport, style: Style) -> String {
     use std::fmt::Write;
     let mut buf = String::new();
     for w in &report.warnings {
-        writeln!(&mut buf, "{w}").unwrap();
+        writeln!(&mut buf, "{}", style.warning(w)).unwrap();
     }
     if !report.warnings.is_empty() {
         writeln!(&mut buf).unwrap();
     }
-    writeln!(&mut buf, "Repo: {}", report.repo).unwrap();
-    writeln!(&mut buf, "Since (churn/firefighting): {}", report.since).unwrap();
-    writeln!(&mut buf, "Recent since (bus factor): {}", report.recent_since).unwrap();
+    writeln!(
+        &mut buf,
+        "{} {}",
+        style.header_label("Repo:"),
+        report.repo
+    )
+    .unwrap();
+    writeln!(
+        &mut buf,
+        "{} {}",
+        style.header_label("Since (churn/firefighting):"),
+        report.since
+    )
+    .unwrap();
+    writeln!(
+        &mut buf,
+        "{} {}",
+        style.header_label("Recent since (bus factor):"),
+        report.recent_since
+    )
+    .unwrap();
     if report.source_dirs.is_empty() {
-        writeln!(&mut buf, "Source dirs: (none — whole repo for file metrics)").unwrap();
+        writeln!(
+            &mut buf,
+            "{} {}",
+            style.header_label("Source dirs:"),
+            "(none — whole repo for file metrics)"
+        )
+        .unwrap();
     } else {
-        writeln!(&mut buf, "Source dirs: {}", report.source_dirs.join(", ")).unwrap();
+        writeln!(
+            &mut buf,
+            "{} {}",
+            style.header_label("Source dirs:"),
+            report.source_dirs.join(", ")
+        )
+        .unwrap();
     }
     writeln!(&mut buf).unwrap();
     for m in &report.metrics {
-        writeln!(&mut buf, "== {} ==", m.label).unwrap();
-        writeln!(&mut buf, "{}", m.summary).unwrap();
+        writeln!(
+            &mut buf,
+            "{}",
+            style.section(&format!("== {} ==", m.label))
+        )
+        .unwrap();
+        writeln!(&mut buf, "{}", style.summary(&m.summary)).unwrap();
         if let Some(rows) = &m.rows {
             if !rows.is_empty() {
                 let data: Vec<(String, u64)> =
@@ -59,21 +102,35 @@ fn render_table(report: &ScanReport) -> String {
                 writeln!(&mut buf, "{table}").unwrap();
             }
         } else if let Some(s) = m.scalar {
-            writeln!(&mut buf, "value: {s}").unwrap();
+            writeln!(
+                &mut buf,
+                "{} {}",
+                style.scalar_label("value:"),
+                style.scalar_value(&s.to_string())
+            )
+            .unwrap();
         }
         writeln!(&mut buf).unwrap();
     }
     if !report.alerts.is_empty() {
-        writeln!(&mut buf, "== Alerts ==").unwrap();
+        writeln!(&mut buf, "{}", style.section("== Alerts ==")).unwrap();
         for a in &report.alerts {
             writeln!(
                 &mut buf,
-                "[{:?}] {} — {}",
-                a.severity, a.code, a.message
+                "[{}] {} — {}",
+                style.alert_severity(a.severity),
+                style.alert_code(&a.code),
+                a.message
             )
             .unwrap();
             if let Some(e) = &a.evidence {
-                writeln!(&mut buf, "  evidence: {e}").unwrap();
+                writeln!(
+                    &mut buf,
+                    "  {} {}",
+                    style.evidence_label("evidence:"),
+                    e
+                )
+                .unwrap();
             }
         }
     }
@@ -85,30 +142,44 @@ mod tests {
     use super::*;
     use crate::model::{AlertHint, AlertSeverity, MetricId, MetricResult};
 
-    #[test]
-    fn json_roundtrip_shape() {
-        let report = ScanReport {
-            warnings: vec![],
+    fn sample_report() -> ScanReport {
+        ScanReport {
+            warnings: vec!["Warning: no source dir".into()],
             repo: "/tmp".into(),
             since: "1 year ago".into(),
             recent_since: "6 months ago".into(),
             source_dirs: vec!["src".into()],
             metrics: vec![MetricResult {
                 id: MetricId::Firefighting,
-                label: "x".into(),
-                summary: "y".into(),
+                label: "Firefighting".into(),
+                summary: "3 matching commits".into(),
                 rows: None,
                 scalar: Some(3),
             }],
             alerts: vec![AlertHint {
-                severity: AlertSeverity::Info,
+                severity: AlertSeverity::Warning,
                 code: "test".into(),
                 message: "ok".into(),
-                evidence: None,
+                evidence: Some("count=3".into()),
             }],
-        };
-        let s = render(&report, OutputFormat::Json).unwrap();
+        }
+    }
+
+    #[test]
+    fn json_roundtrip_shape() {
+        let report = sample_report();
+        let s = render(&report, OutputFormat::Json, false).unwrap();
         assert!(s.contains("firefighting"));
         assert!(s.contains("alerts"));
+        assert!(!s.contains('\x1b'));
+    }
+
+    #[test]
+    fn table_no_color_has_no_ansi() {
+        let report = sample_report();
+        let s = render(&report, OutputFormat::Table, true).unwrap();
+        assert!(s.contains("Firefighting"));
+        assert!(s.contains("== Alerts =="));
+        assert!(!s.contains('\x1b'));
     }
 }

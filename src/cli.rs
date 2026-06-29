@@ -7,6 +7,10 @@ use crate::model::OutputFormat;
 #[derive(Parser, Debug)]
 #[command(name = "vprdashboard", version, about = "Git repo health metrics CLI")]
 pub struct Cli {
+    /// Disable ANSI colors in terminal output.
+    #[arg(long = "no-color", global = true)]
+    pub no_color: bool,
+
     #[command(subcommand)]
     pub command: Command,
 }

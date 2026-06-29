@@ -6,7 +6,7 @@ use crate::git;
 use crate::metrics::{self, ScanOptions};
 use crate::report;
 
-pub fn run_scan(common: &CommonOpts) -> anyhow::Result<()> {
+pub fn run_scan(common: &CommonOpts, no_color: bool) -> anyhow::Result<()> {
     git::check_has_commits(&common.repo).context("repository check")?;
     let opts = ScanOptions {
         repo: &common.repo,
@@ -30,6 +30,6 @@ pub fn run_scan(common: &CommonOpts) -> anyhow::Result<()> {
         metrics,
         &opts,
     );
-    report::print_report(&report, common.format).context("render report")?;
+    report::print_report(&report, common.format, no_color).context("render report")?;
     Ok(())
 }

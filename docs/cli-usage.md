@@ -28,6 +28,7 @@ Common flags:
 - `--recent-since <git-date>` — bus-factor departed-contributor check (default: `6 months ago`)
 - `--top <n>` — max rows for file/author tables (default: `20`)
 - `--format table|json` — output (default: `table`)
+- `--no-color` — disable ANSI colors in table output (also respects `NO_COLOR`)
 
 When `--source-dir` is omitted, file metrics scan the whole repo and a warning is printed at the start of the output.
 

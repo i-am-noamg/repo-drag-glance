@@ -7,7 +7,7 @@ use crate::metrics::{self, ScanOptions};
 use crate::model::MetricId;
 use crate::report;
 
-pub fn run_metrics(name: &str, common: &CommonOpts) -> anyhow::Result<()> {
+pub fn run_metrics(name: &str, common: &CommonOpts, no_color: bool) -> anyhow::Result<()> {
     let Some(id) = MetricId::parse(name) else {
         bail!("unknown metric {:?}; try: churn, bus_factor, bug_hotspots, delivery_pace, firefighting", name);
     };
@@ -34,6 +34,6 @@ pub fn run_metrics(name: &str, common: &CommonOpts) -> anyhow::Result<()> {
         vec![m],
         &opts,
     );
-    report::print_report(&report, common.format).context("render report")?;
+    report::print_report(&report, common.format, no_color).context("render report")?;
     Ok(())
 }
