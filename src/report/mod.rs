@@ -95,9 +95,13 @@ fn render_table(report: &ScanReport, style: Style) -> String {
         writeln!(&mut buf, "{}", style.summary(&m.summary)).unwrap();
         if let Some(rows) = &m.rows {
             if !rows.is_empty() {
-                let data: Vec<(String, u64)> =
-                    rows.iter().map(|r| (r.key.clone(), r.value)).collect();
-                let mut table = tabled::Table::new(data);
+                let (key_col, value_col) = m.id.row_columns();
+                let mut builder = tabled::builder::Builder::default();
+                builder.push_record([key_col, value_col]);
+                for r in rows {
+                    builder.push_record([&r.key, &r.value.to_string()]);
+                }
+                let mut table = builder.build();
                 table.with(tabled::settings::Style::rounded());
                 writeln!(&mut buf, "{table}").unwrap();
             }
@@ -140,7 +144,7 @@ fn render_table(report: &ScanReport, style: Style) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{AlertHint, AlertSeverity, MetricId, MetricResult};
+    use crate::model::{AlertHint, AlertSeverity, MetricId, MetricResult, MetricRow};
 
     fn sample_report() -> ScanReport {
         ScanReport {
@@ -149,13 +153,26 @@ mod tests {
             since: "1 year ago".into(),
             recent_since: "6 months ago".into(),
             source_dirs: vec!["src".into()],
-            metrics: vec![MetricResult {
-                id: MetricId::Firefighting,
-                label: "Firefighting".into(),
-                summary: "3 matching commits".into(),
-                rows: None,
-                scalar: Some(3),
-            }],
+            metrics: vec![
+                MetricResult {
+                    id: MetricId::Churn,
+                    label: "High-churn files".into(),
+                    summary: "1 files in top 20".into(),
+                    rows: Some(vec![MetricRow {
+                        key: "src/lib.rs".into(),
+                        value: 4,
+                        extra: None,
+                    }]),
+                    scalar: None,
+                },
+                MetricResult {
+                    id: MetricId::Firefighting,
+                    label: "Firefighting".into(),
+                    summary: "3 matching commits".into(),
+                    rows: None,
+                    scalar: Some(3),
+                },
+            ],
             alerts: vec![AlertHint {
                 severity: AlertSeverity::Warning,
                 code: "test".into(),
@@ -172,6 +189,25 @@ mod tests {
         assert!(s.contains("firefighting"));
         assert!(s.contains("alerts"));
         assert!(!s.contains('\x1b'));
+    }
+
+    #[test]
+    fn table_uses_metric_column_names() {
+        let report = sample_report();
+        let s = render(&report, OutputFormat::Table, true).unwrap();
+        assert!(s.contains("file"));
+        assert!(s.contains("changes"));
+        assert!(!s.contains("String"));
+        assert!(!s.contains("u64"));
+    }
+
+    #[test]
+    fn json_rows_use_metric_column_names() {
+        let report = sample_report();
+        let s = render(&report, OutputFormat::Json, false).unwrap();
+        assert!(s.contains("\"file\": \"src/lib.rs\""));
+        assert!(s.contains("\"changes\": 4"));
+        assert!(!s.contains("\"key\""));
     }
 
     #[test]

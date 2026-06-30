@@ -211,7 +211,7 @@ fn source_dir_excludes_root_lockfile_from_churn() {
     let rows = v["metrics"][0]["rows"].as_array().unwrap();
     let keys: Vec<_> = rows
         .iter()
-        .filter_map(|r| r.get("key").and_then(|k| k.as_str()))
+        .filter_map(|r| r.get("file").and_then(|k| k.as_str()))
         .collect();
     assert!(keys.iter().any(|k| k.starts_with("src/")));
     assert!(!keys.iter().any(|k| *k == "Cargo.lock"));
@@ -238,7 +238,7 @@ fn bug_hotspots_finds_fix_commit_without_since() {
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     let rows = v["metrics"][0]["rows"].as_array().unwrap();
     assert!(
-        rows.iter().any(|r| r.get("key").and_then(|k| k.as_str()) == Some("src/lib.rs")),
+        rows.iter().any(|r| r.get("file").and_then(|k| k.as_str()) == Some("src/lib.rs")),
         "expected src/lib.rs in bug hotspots"
     );
 }

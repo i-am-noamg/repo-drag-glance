@@ -52,6 +52,17 @@ impl MetricId {
         }
     }
 
+    /// Column titles for tabular metrics (`key`, `value` pairs).
+    pub fn row_columns(self) -> (&'static str, &'static str) {
+        match self {
+            MetricId::Churn => ("file", "changes"),
+            MetricId::BusFactor => ("author", "commits"),
+            MetricId::BugHotspots => ("file", "touches"),
+            MetricId::DeliveryPace => ("month", "commits"),
+            MetricId::Firefighting => ("", ""),
+        }
+    }
+
     pub fn all() -> &'static [MetricId] {
         &[
             MetricId::Churn,
@@ -84,7 +95,7 @@ pub struct MetricRow {
 }
 
 /// Result of computing a single metric.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct MetricResult {
     pub id: MetricId,
     pub label: String,
@@ -93,6 +104,83 @@ pub struct MetricResult {
     pub rows: Option<Vec<MetricRow>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scalar: Option<u64>,
+}
+
+impl Serialize for MetricResult {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut field_count = 3;
+        if self.rows.is_some() {
+            field_count += 1;
+        }
+        if self.scalar.is_some() {
+            field_count += 1;
+        }
+
+        let mut state = serializer.serialize_struct("MetricResult", field_count)?;
+        state.serialize_field("id", &self.id)?;
+        state.serialize_field("label", &self.label)?;
+        state.serialize_field("summary", &self.summary)?;
+        if let Some(rows) = &self.rows {
+            state.serialize_field("rows", &NamedMetricRows {
+                id: self.id,
+                rows,
+            })?;
+        }
+        if let Some(scalar) = self.scalar {
+            state.serialize_field("scalar", &scalar)?;
+        }
+        state.end()
+    }
+}
+
+struct NamedMetricRows<'a> {
+    id: MetricId,
+    rows: &'a [MetricRow],
+}
+
+impl Serialize for NamedMetricRows<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeSeq;
+
+        let (key_name, value_name) = self.id.row_columns();
+        let mut seq = serializer.serialize_seq(Some(self.rows.len()))?;
+        for row in self.rows {
+            seq.serialize_element(&NamedMetricRow {
+                key_name,
+                value_name,
+                row,
+            })?;
+        }
+        seq.end()
+    }
+}
+
+struct NamedMetricRow<'a> {
+    key_name: &'static str,
+    value_name: &'static str,
+    row: &'a MetricRow,
+}
+
+impl Serialize for NamedMetricRow<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut state = serializer.serialize_struct("MetricRow", 2)?;
+        state.serialize_field(self.key_name, &self.row.key)?;
+        state.serialize_field(self.value_name, &self.row.value)?;
+        state.end()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
