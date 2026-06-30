@@ -22,6 +22,8 @@ repo-drag-glance/
     main.rs             # thin entry: clap dispatch
     cli.rs               # clap `Cli` / `CommonOpts` / subcommands
     model.rs             # MetricId, MetricResult, ScanReport, AlertHint, OutputFormat
+    validate.rs          # CLI input validation (source-dir, since, top)
+    sanitize.rs          # strip ANSI/control chars from git-derived output
     alerts.rs            # alert hints from metric results
     commands/
       mod.rs
@@ -44,11 +46,12 @@ repo-drag-glance/
 ## CLI flow
 
 1. Parse args with `clap`.
-2. `scan` / `metrics`: `git::check_has_commits` (empty repo → clear error).
-3. Run git queries via `git_stdout` (stdin always **null** — see below).
-4. Parse stdout in Rust; build `MetricResult` values.
-5. `alerts::compute_alerts` → attach to `ScanReport`.
-6. `report::render` → table or JSON.
+2. `validate::validate_common_opts` (reject abusive flags before git runs).
+3. `scan` / `metrics`: `git::check_has_commits` (empty repo → clear error).
+4. Run git queries via `git_stdout` (stdin always **null** — see below).
+5. Parse stdout in Rust; build `MetricResult` values.
+6. `alerts::compute_alerts` → attach to `ScanReport`.
+7. `report::render` → sanitize git-derived strings → table or JSON.
 
 ## Per-metric git invocations
 
@@ -69,6 +72,8 @@ File metrics count non-empty path lines (blog: `sort | uniq -c`), optionally fil
   stdin; with a null stdin that looks like “zero contributors”. We always pass
   an explicit **`HEAD`** for shortlog (current branch only).
 - Use `git -C <repo> …` rather than `current_dir` + relative git.
+- **Child environment is scrubbed** — only a small allowlist (`PATH`, `HOME`, …)
+  is inherited; `GIT_*` and dynamic-linker injection vars are dropped.
 
 ## Metric / report types
 
@@ -87,6 +92,24 @@ File metrics count non-empty path lines (blog: `sort | uniq -c`), optionally fil
   `-D warnings` on clippy and `--locked` builds).
 - **`anyhow`** at command boundaries; **`thiserror`** for `GitError`.
 - Keep dependencies minimal; each crate should have a clear reason.
+
+## Security
+
+See [`SECURITY.md`](../SECURITY.md) for threat model and reporting.
+
+Subprocess rules (see also `src/git/run.rs`):
+
+- **No shell** — `git` args are a fixed argv list.
+- **Scrubbed environment** — `GIT_*`, `LD_PRELOAD`, `DYLD_*`, and
+  `REPO_DRAG_GLANCE_*` are not inherited by git children. Override the git
+  binary with `REPO_DRAG_GLANCE_GIT` (single-line path).
+- **Validated CLI input** — `src/validate.rs` rejects abusive `--source-dir`
+  pathspecs, `--` values, and oversized `--since` / `--top`.
+- **Sanitized output** — git-derived strings pass through `src/sanitize.rs`
+  before table/JSON render (ANSI/control stripping).
+- **Redacted errors** — git stderr is hidden unless `REPO_DRAG_GLANCE_VERBOSE=1`.
+
+Supply chain: [`deny.toml`](../deny.toml), RustSec audit, and Dependabot in CI.
 
 ## Dependencies (current)
 
@@ -115,4 +138,5 @@ Dev: `tempfile`, `serde_json` (integration tests).
   - **msrv** — `cargo test --locked` on Rust 1.85
   - **install-smoke** — `cargo install --path . --locked` + binary smoke test
   - **audit** — RustSec advisory check (`rustsec/audit-check`)
+  - **deny** — license/advisory/source policy (`cargo deny check all`)
 - **Dependabot** (`.github/dependabot.yml`) — weekly Cargo and monthly GitHub Actions updates.

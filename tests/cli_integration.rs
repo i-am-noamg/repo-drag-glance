@@ -331,3 +331,51 @@ fn bus_factor_ignores_since_flag() {
         "bus_factor should use full history, not --since; got {total} commits"
     );
 }
+
+#[test]
+fn rejects_pathspec_source_dir() {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    init_fixture_repo(repo);
+
+    let out = run_cli(&[
+        "scan",
+        "--repo",
+        repo.to_str().unwrap(),
+        "--source-dir",
+        ":(glob)src",
+        "--format",
+        "json",
+    ]);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("invalid") || stderr.contains("source-dir"),
+        "expected validation error, got: {stderr}"
+    );
+}
+
+#[test]
+fn git_failure_hides_stderr_by_default() {
+    let dir = tempfile::tempdir().unwrap();
+    let not_repo = dir.path().join("not-a-repo");
+    fs::create_dir_all(&not_repo).unwrap();
+
+    let out = run_cli(&[
+        "scan",
+        "--repo",
+        not_repo.to_str().unwrap(),
+        "--format",
+        "json",
+    ]);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("not a git repository") || stderr.contains("repository"),
+        "expected friendly repo error, got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("fatal:"),
+        "git stderr should not be echoed by default: {stderr}"
+    );
+}

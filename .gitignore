@@ -1,2 +1,20 @@
 /target
 .DS_Store
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+id_rsa
+id_ed25519
+
+# Local tooling
+.idea/
+.vscode/
+*.swp
+*.swo

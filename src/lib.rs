@@ -7,5 +7,7 @@ pub mod git;
 pub mod metrics;
 pub mod model;
 pub mod report;
+pub mod sanitize;
+pub mod validate;
 
 pub use model::{AlertHint, AlertSeverity, MetricId, MetricResult, OutputFormat, ScanReport};

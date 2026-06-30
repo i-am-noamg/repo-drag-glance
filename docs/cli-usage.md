@@ -79,3 +79,12 @@ Requires **git** on `PATH`.
 
 CI runs the same test suite on Ubuntu, macOS, and Windows, plus fmt, clippy, MSRV,
 install smoke, and dependency audit — see [`architecture.md`](architecture.md#testing).
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `REPO_DRAG_GLANCE_GIT` | Path to the `git` executable (single line; not passed to child env) |
+| `REPO_DRAG_GLANCE_VERBOSE` | Set to `1`, `true`, or `yes` to print git stderr on failures |
+
+See [`SECURITY.md`](../SECURITY.md) for the threat model and safe usage in CI.

@@ -61,5 +61,8 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) on push/PR to `main`
 - **msrv** — `cargo test --locked` on Rust 1.85
 - **install-smoke** — `cargo install --path . --locked` and a binary smoke test
 - **audit** — `rustsec/audit-check` for dependency advisories
+- **deny** — `cargo deny check all` for licenses and banned sources
 
 Dependabot (`.github/dependabot.yml`) opens weekly Cargo and monthly GitHub Actions update PRs.
+
+Security policy: [`SECURITY.md`](SECURITY.md).

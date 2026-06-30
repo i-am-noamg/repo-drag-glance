@@ -3,6 +3,7 @@ mod style;
 use anyhow::Context;
 
 use crate::model::{MetricId, MetricResult, OutputFormat, ScanReport};
+use crate::sanitize;
 
 pub use style::Style;
 
@@ -21,9 +22,57 @@ pub fn source_dir_warnings(metrics: &[MetricResult], source_dirs: &[String]) -> 
 }
 
 pub fn render(report: &ScanReport, format: OutputFormat, no_color: bool) -> anyhow::Result<String> {
+    let report = sanitize_report(report);
     match format {
-        OutputFormat::Json => serde_json::to_string_pretty(report).context("serialize JSON"),
-        OutputFormat::Table => Ok(render_table(report, Style::new(no_color))),
+        OutputFormat::Json => serde_json::to_string_pretty(&report).context("serialize JSON"),
+        OutputFormat::Table => Ok(render_table(&report, Style::new(no_color))),
+    }
+}
+
+fn sanitize_report(report: &ScanReport) -> ScanReport {
+    ScanReport {
+        warnings: report
+            .warnings
+            .iter()
+            .map(|w| sanitize::display_text(w))
+            .collect(),
+        repo: sanitize::display_text(&report.repo),
+        since: sanitize::display_text(&report.since),
+        recent_since: sanitize::display_text(&report.recent_since),
+        source_dirs: report
+            .source_dirs
+            .iter()
+            .map(|d| sanitize::display_text(d))
+            .collect(),
+        metrics: report.metrics.iter().map(sanitize_metric).collect(),
+        alerts: report.alerts.iter().map(sanitize_alert).collect(),
+    }
+}
+
+fn sanitize_metric(metric: &MetricResult) -> MetricResult {
+    MetricResult {
+        id: metric.id,
+        label: sanitize::display_text(&metric.label),
+        summary: sanitize::display_text(&metric.summary),
+        rows: metric.rows.as_ref().map(|rows| {
+            rows.iter()
+                .map(|row| crate::model::MetricRow {
+                    key: sanitize::display_text(&row.key),
+                    value: row.value,
+                    extra: row.extra.as_ref().map(|e| sanitize::display_text(e)),
+                })
+                .collect()
+        }),
+        scalar: metric.scalar,
+    }
+}
+
+fn sanitize_alert(alert: &crate::model::AlertHint) -> crate::model::AlertHint {
+    crate::model::AlertHint {
+        severity: alert.severity,
+        code: sanitize::display_text(&alert.code),
+        message: sanitize::display_text(&alert.message),
+        evidence: alert.evidence.as_ref().map(|e| sanitize::display_text(e)),
     }
 }
 

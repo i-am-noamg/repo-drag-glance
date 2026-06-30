@@ -14,7 +14,7 @@ Docs:
 - `docs/blogpost.md` - canonical reference: five git commands and workflow
 - `docs/git-metrics.md` - metric definitions aligned with the blogpost
 - `docs/cli-usage.md` - CLI commands, flags, install, tests, and CI notes
-- `docs/architecture.md` - Rust CLI architecture, layout, guardrails, and CI jobs
+- `docs/architecture.md` - Rust CLI architecture, layout, guardrails, CI, and security
 
 Sources:
 
