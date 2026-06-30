@@ -64,14 +64,18 @@ cargo run -- explain bus_factor
 ## Install (from source)
 
 ```bash
-cargo install --path .
+cargo install --path . --locked
 ```
 
 ## Tests
 
 ```bash
-cargo test
+cargo test --locked
 ```
 
 See [`tests/README.md`](../tests/README.md): integration tests build a temporary
 git repository and run the `repo-drag-glance` binary (`CARGO_BIN_EXE_repo_drag_glance`).
+Requires **git** on `PATH`.
+
+CI runs the same test suite on Ubuntu, macOS, and Windows, plus fmt, clippy, MSRV,
+install smoke, and dependency audit — see [`architecture.md`](architecture.md#testing).

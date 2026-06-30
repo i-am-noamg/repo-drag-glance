@@ -79,10 +79,12 @@ File metrics count non-empty path lines (blog: `sort | uniq -c`), optionally fil
 
 ## Guardrails
 
-- **Stable Rust** only; `rust-version` in `Cargo.toml` (currently 1.75+); no
-  nightly-only features.
+- **Stable Rust** only; `rust-version` in `Cargo.toml` (currently 1.85+); no
+  nightly-only features. CI runs a dedicated **msrv** job on that version.
+- **[`rust-toolchain.toml`](../rust-toolchain.toml)** — local dev uses stable with
+  `rustfmt` and `clippy`.
 - **`cargo fmt`** and **`cargo clippy`** in CI (default lints; CI uses
-  `-D warnings` on clippy).
+  `-D warnings` on clippy and `--locked` builds).
 - **`anyhow`** at command boundaries; **`thiserror`** for `GitError`.
 - Keep dependencies minimal; each crate should have a clear reason.
 
@@ -105,4 +107,12 @@ Dev: `tempfile`, `serde_json` (integration tests).
 
 - **Unit tests** in `src/**` modules (`#[cfg(test)]`).
 - **Integration tests** in `tests/cli_integration.rs` (see `tests/README.md`).
-- **CI**: `.github/workflows/ci.yml` — fmt, clippy, test on Ubuntu.
+  Require **git** on `PATH` (CI verifies this on all platforms).
+- **CI** ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)):
+  - **fmt** — `cargo fmt --all -- --check` (Ubuntu)
+  - **clippy** — `cargo clippy --all-targets --locked -- -D warnings` (Ubuntu)
+  - **test** — `cargo test --locked` on Ubuntu, macOS, and Windows
+  - **msrv** — `cargo test --locked` on Rust 1.85
+  - **install-smoke** — `cargo install --path . --locked` + binary smoke test
+  - **audit** — RustSec advisory check (`rustsec/audit-check`)
+- **Dependabot** (`.github/dependabot.yml`) — weekly Cargo and monthly GitHub Actions updates.

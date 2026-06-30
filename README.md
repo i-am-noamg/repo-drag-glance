@@ -43,10 +43,23 @@ repo-drag-glance scan --repo /path/to/repo
 
 ## Contributing
 
+Local checks (match CI):
+
 ```bash
-cargo test
-cargo fmt --all
-cargo clippy --all-targets
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo test --locked
 ```
 
-CI runs fmt, clippy, and tests (see `[.github/workflows/ci.yml](.github/workflows/ci.yml)`).
+[`rust-toolchain.toml`](rust-toolchain.toml) pins stable with `rustfmt` and `clippy` for local dev. MSRV is `rust-version` in [`Cargo.toml`](Cargo.toml) (currently 1.85+).
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) on push/PR to `main`/`master`:
+
+- **fmt** — formatting check (Ubuntu)
+- **clippy** — lints with `-D warnings`, `--locked` (Ubuntu)
+- **test** — `cargo test --locked` on Ubuntu, macOS, and Windows
+- **msrv** — `cargo test --locked` on Rust 1.85
+- **install-smoke** — `cargo install --path . --locked` and a binary smoke test
+- **audit** — `rustsec/audit-check` for dependency advisories
+
+Dependabot (`.github/dependabot.yml`) opens weekly Cargo and monthly GitHub Actions update PRs.
