@@ -1,7 +1,7 @@
 # Integration tests
 
 - [`cli_integration.rs`](cli_integration.rs) — temp git repo, real `git` and
-  `vprdashboard` binary (`CARGO_BIN_EXE_vprdashboard`). Needs a normal
+  `repo-drag-glance` binary (`CARGO_BIN_EXE_repo_drag_glance`). Needs a normal
   environment where `git init` can create `.git/hooks` (some sandboxes block
   that).
 

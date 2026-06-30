@@ -15,7 +15,7 @@ It stays simple, fast, and cross-platform.
 ## Crate layout
 
 ```text
-vprdashboard/
+repo-drag-glance/
   Cargo.toml
   src/
     lib.rs              # library root (metrics + git + report for tests)

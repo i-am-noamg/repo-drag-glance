@@ -1,6 +1,6 @@
 # CLI usage
 
-Binary name: `vprdashboard` (same as the Rust package).
+Binary name: `repo-drag-glance` (same as the Rust package).
 
 Canonical metric definitions: [`docs/blogpost.md`](blogpost.md).
 
@@ -74,4 +74,4 @@ cargo test
 ```
 
 See [`tests/README.md`](../tests/README.md): integration tests build a temporary
-git repository and run the `vprdashboard` binary (`CARGO_BIN_EXE_vprdashboard`).
+git repository and run the `repo-drag-glance` binary (`CARGO_BIN_EXE_repo_drag_glance`).

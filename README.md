@@ -1,8 +1,8 @@
-# vprdashboard
+# repo-drag-glance
 
-Git-based **repo health** metrics for VP R&D and staff engineers: churn, ownership
-(`shortlog`), bug hotspots, delivery pace, and firefighting-style commits, plus
-lightweight alert hints.
+Five **git log** drag diagnostics on an unfamiliar codebase before you open a file: churn
+hotspots, bus factor, bug clusters, delivery pace, and firefighting-style commits,
+plus lightweight alert hints.
 
 Detailed behavior and metric definitions live in [`docs/blogpost.md`](docs/blogpost.md).
 
@@ -25,7 +25,7 @@ Install the binary into `~/.cargo/bin`:
 
 ```bash
 cargo install --path .
-vprdashboard scan --repo /path/to/repo
+repo-drag-glance scan --repo /path/to/repo
 ```
 
 ## Documentation

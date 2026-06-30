@@ -29,7 +29,7 @@ fn init_fixture_repo(root: &Path) {
     git(root, &["init"]);
     git(
         root,
-        &["config", "user.email", "fixture@vprdashboard.test"],
+        &["config", "user.email", "fixture@repodragglance.test"],
     );
     git(root, &["config", "user.name", "Fixture"]);
     fs::create_dir_all(root.join("src")).unwrap();
@@ -47,9 +47,9 @@ fn init_fixture_repo(root: &Path) {
 fn old_author_env() -> [(&'static str, &'static str); 6] {
     [
         ("GIT_AUTHOR_NAME", "OldAuthor"),
-        ("GIT_AUTHOR_EMAIL", "old@vprdashboard.test"),
+        ("GIT_AUTHOR_EMAIL", "old@repodragglance.test"),
         ("GIT_COMMITTER_NAME", "OldAuthor"),
-        ("GIT_COMMITTER_EMAIL", "old@vprdashboard.test"),
+        ("GIT_COMMITTER_EMAIL", "old@repodragglance.test"),
         ("GIT_AUTHOR_DATE", "2020-01-01T12:00:00"),
         ("GIT_COMMITTER_DATE", "2020-01-01T12:00:00"),
     ]
@@ -60,7 +60,7 @@ fn init_departed_author_repo(root: &Path) {
     git(root, &["init"]);
     git(
         root,
-        &["config", "user.email", "fixture@vprdashboard.test"],
+        &["config", "user.email", "fixture@repodragglance.test"],
     );
     git(root, &["config", "user.name", "Fixture"]);
     fs::create_dir_all(root.join("src")).unwrap();
@@ -78,21 +78,21 @@ fn init_departed_author_repo(root: &Path) {
     git(root, &["commit", "-m", "recent work"]);
 }
 
-fn vprdashboard_bin() -> std::path::PathBuf {
-    if let Some(p) = std::env::var_os("CARGO_BIN_EXE_vprdashboard") {
+fn repo_drag_glance_bin() -> std::path::PathBuf {
+    if let Some(p) = std::env::var_os("CARGO_BIN_EXE_repo_drag_glance") {
         return std::path::PathBuf::from(p);
     }
-    let target = std::env::var_os("CARGO_TARGET_DIR").expect("CARGO_TARGET_DIR");
-    std::path::PathBuf::from(target)
-        .join("debug")
-        .join("vprdashboard")
+    let target = std::env::var_os("CARGO_TARGET_DIR")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target"));
+    target.join("debug").join("repo-drag-glance")
 }
 
-fn run_vpr(args: &[&str]) -> std::process::Output {
-    Command::new(vprdashboard_bin())
+fn run_cli(args: &[&str]) -> std::process::Output {
+    Command::new(repo_drag_glance_bin())
         .args(args)
         .output()
-        .expect("run vprdashboard")
+        .expect("run repo-drag-glance")
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn scan_json_has_metrics_and_alerts() {
     let repo = dir.path();
     init_fixture_repo(repo);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "scan",
         "--repo",
         repo.to_str().unwrap(),
@@ -145,7 +145,7 @@ fn metrics_single_churn_json() {
     let repo = dir.path();
     init_fixture_repo(repo);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "metrics",
         "churn",
         "--repo",
@@ -169,7 +169,7 @@ fn scan_fails_clearly_on_repo_with_no_commits() {
     fs::create_dir_all(repo).unwrap();
     git(repo, &["init"]);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "scan",
         "--repo",
         repo.to_str().unwrap(),
@@ -193,7 +193,7 @@ fn source_dir_excludes_root_lockfile_from_churn() {
     let repo = dir.path();
     init_fixture_repo(repo);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "metrics",
         "churn",
         "--repo",
@@ -223,7 +223,7 @@ fn bug_hotspots_finds_fix_commit_without_since() {
     let repo = dir.path();
     init_fixture_repo(repo);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "metrics",
         "bug_hotspots",
         "--repo",
@@ -249,7 +249,7 @@ fn source_dir_set_suppresses_warning() {
     let repo = dir.path();
     init_fixture_repo(repo);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "scan",
         "--repo",
         repo.to_str().unwrap(),
@@ -274,7 +274,7 @@ fn bus_factor_departed_top_contributor_alert() {
     let repo = dir.path();
     init_departed_author_repo(repo);
 
-    let out = run_vpr(&[
+    let out = run_cli(&[
         "metrics",
         "bus_factor",
         "--repo",
@@ -302,7 +302,7 @@ fn bus_factor_ignores_since_flag() {
     let repo = dir.path();
     init_fixture_repo(repo);
 
-    let out_all = run_vpr(&[
+    let out_all = run_cli(&[
         "metrics",
         "bus_factor",
         "--repo",

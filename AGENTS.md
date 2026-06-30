@@ -1,6 +1,6 @@
 # AGENTS
 
-Project: Open-source repo health dashboard for VP R&D.
+Project: Five git-log drag diagnostics on an unfamiliar codebase before you read code.
 
 Keep agent context slim. Use the docs as the source of truth.
 

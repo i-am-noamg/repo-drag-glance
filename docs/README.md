@@ -1,13 +1,13 @@
-# VPR Dashboard Docs
+# repo-drag-glance Docs
 
 Purpose:
 
-- Provide a simple, open-source dashboard that surfaces git-based health signals
-  so a VP R&D can spot anomalies early.
+- Provide a simple, open-source CLI for the five git-log drag diagnostics from
+  [`blogpost.md`](blogpost.md) — a first pass on an unfamiliar codebase before you read code.
 
 Audience:
 
-- Engineering leaders and senior engineers who need quick, reliable signals.
+- R&D consultants and staff engineers triaging a codebase before reading code.
 
 Docs:
 

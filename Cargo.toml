@@ -1,11 +1,11 @@
 [package]
-name = "vprdashboard"
+name = "repo-drag-glance"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
-description = "Git-based repo health signals for VP R&D"
+description = "Five git-log drag diagnostics on an unfamiliar codebase before you read code"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/your-org/vprdashboard"
+repository = "https://github.com/your-org/repo-drag-glance"
 readme = "README.md"
 
 [dependencies]

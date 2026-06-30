@@ -1,4 +1,4 @@
-//! Git health metrics CLI library.
+//! Five git-log drag diagnostics on an unfamiliar codebase before you read code.
 
 pub mod alerts;
 pub mod cli;

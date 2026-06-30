@@ -1,7 +1,7 @@
 use clap::Parser;
 
-use vprdashboard::cli::{Cli, Command};
-use vprdashboard::commands;
+use repo_drag_glance::cli::{Cli, Command};
+use repo_drag_glance::commands;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
