@@ -333,6 +333,75 @@ fn bus_factor_ignores_since_flag() {
 }
 
 #[test]
+fn delivery_pace_respects_since_flag() {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    init_departed_author_repo(repo);
+
+    let out_narrow = run_cli(&[
+        "metrics",
+        "delivery_pace",
+        "--repo",
+        repo.to_str().unwrap(),
+        "--since",
+        "1 day ago",
+        "--format",
+        "json",
+    ]);
+    assert!(out_narrow.status.success());
+    let narrow: serde_json::Value = serde_json::from_slice(&out_narrow.stdout).unwrap();
+    let narrow_scalar = narrow["metrics"][0]["scalar"].as_u64().unwrap();
+
+    let out_wide = run_cli(&[
+        "metrics",
+        "delivery_pace",
+        "--repo",
+        repo.to_str().unwrap(),
+        "--since",
+        "1970-01-01",
+        "--format",
+        "json",
+    ]);
+    assert!(out_wide.status.success());
+    let wide: serde_json::Value = serde_json::from_slice(&out_wide.stdout).unwrap();
+    let wide_scalar = wide["metrics"][0]["scalar"].as_u64().unwrap();
+
+    assert!(
+        wide_scalar > narrow_scalar,
+        "delivery_pace should include more commits with a wider --since; narrow={narrow_scalar} wide={wide_scalar}"
+    );
+}
+
+#[test]
+fn bus_factor_summary_counts_all_contributors() {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    init_departed_author_repo(repo);
+
+    let out = run_cli(&[
+        "metrics",
+        "bus_factor",
+        "--repo",
+        repo.to_str().unwrap(),
+        "--top",
+        "1",
+        "--format",
+        "json",
+    ]);
+    assert!(out.status.success());
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let summary = v["metrics"][0]["summary"].as_str().unwrap();
+    assert!(
+        summary.contains("2 contributors"),
+        "expected total contributor count in summary, got: {summary}"
+    );
+    assert!(
+        summary.contains("showing top 1"),
+        "expected top row cap in summary, got: {summary}"
+    );
+}
+
+#[test]
 fn rejects_pathspec_source_dir() {
     let dir = tempfile::tempdir().unwrap();
     let repo = dir.path();

@@ -61,9 +61,18 @@ pub fn log_bug_hotspots(repo: &Path, pathspecs: &[&str]) -> Result<Vec<String>, 
     git_stdout_lines(repo, &args)
 }
 
-/// One line per commit: `%ad` with month format.
-pub fn log_commit_months(repo: &Path) -> Result<Vec<String>, GitError> {
-    let out = git_stdout(repo, &["log", "--format=%ad", "--date=format:%Y-%m"])?;
+/// One line per commit: `%ad` with month format, scoped by `--since`.
+pub fn log_commit_months(repo: &Path, since: &str) -> Result<Vec<String>, GitError> {
+    let out = git_stdout(
+        repo,
+        &[
+            "log",
+            "--format=%ad",
+            "--date=format:%Y-%m",
+            "--since",
+            since,
+        ],
+    )?;
     Ok(out
         .lines()
         .map(str::trim)

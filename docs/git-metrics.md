@@ -57,11 +57,13 @@ Why it matters:
 
 ## 4) Delivery pace
 
-Commit volume by month, full history:
+Commit volume by month. The blog uses full history:
 
 ```bash
 git log --format='%ad' --date=format:'%Y-%m' | sort | uniq -c
 ```
+
+CLI: `--since "1 year ago"` (default) scopes the log to a rolling window so output stays readable.
 
 Why it matters:
 
@@ -87,5 +89,5 @@ Why it matters:
 | churn | yes (default `1 year ago`) | — | yes |
 | bus_factor | no (full history) | yes (alerts) | no |
 | bug_hotspots | no (full history) | — | yes |
-| delivery_pace | no (full history) | — | no |
+| delivery_pace | yes (default `1 year ago`) | — | no |
 | firefighting | yes (default `1 year ago`) | — | no |

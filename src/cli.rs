@@ -51,7 +51,7 @@ pub struct CommonOpts {
     #[arg(long = "source-dir")]
     pub source_dirs: Vec<String>,
 
-    /// Time window for churn and firefighting (`git --since`).
+    /// Time window for churn, firefighting, and delivery pace (`git --since`).
     #[arg(long, default_value = "1 year ago")]
     pub since: String,
 

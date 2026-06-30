@@ -66,10 +66,10 @@ pub fn metric_bus_factor(opts: &ScanOptions) -> Result<MetricResult, GitError> {
         })
         .collect();
     let total: u64 = parsed.iter().map(|(_, n)| n).sum();
+    let contributor_count = parsed.len();
     let summary = format!(
-        "{} contributors, {} commits (full history on HEAD)",
-        rows.len(),
-        total
+        "{contributor_count} contributors (showing top {}), {total} commits (full history on HEAD)",
+        rows.len()
     );
     Ok(MetricResult {
         id: MetricId::BusFactor,
@@ -111,7 +111,7 @@ pub fn metric_bug_hotspots(opts: &ScanOptions) -> Result<MetricResult, GitError>
 }
 
 pub fn metric_delivery_pace(opts: &ScanOptions) -> Result<MetricResult, GitError> {
-    let months = log_commit_months(opts.repo)?;
+    let months = log_commit_months(opts.repo, opts.since)?;
     let counts = count_by_month(&months);
     let rows: Vec<MetricRow> = counts
         .iter()
@@ -121,7 +121,11 @@ pub fn metric_delivery_pace(opts: &ScanOptions) -> Result<MetricResult, GitError
             extra: None,
         })
         .collect();
-    let summary = format!("{} months of history", rows.len());
+    let summary = format!(
+        "{} months with commits since {}",
+        rows.len(),
+        opts.since
+    );
     Ok(MetricResult {
         id: MetricId::DeliveryPace,
         label: MetricId::DeliveryPace.label().to_string(),

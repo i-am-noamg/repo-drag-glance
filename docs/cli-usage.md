@@ -24,7 +24,7 @@ Common flags:
 
 - `--repo <path>` — repository root (default: `.`)
 - `--source-dir <path>` — repeatable; scopes churn and bug_hotspots (blog: run from `src/` or `app/`)
-- `--since <git-date>` — churn and firefighting only (default: `1 year ago`)
+- `--since <git-date>` — churn, firefighting, and delivery pace (default: `1 year ago`)
 - `--recent-since <git-date>` — bus-factor departed-contributor check (default: `6 months ago`)
 - `--top <n>` — max rows for file/author tables (default: `20`)
 - `--format table|json` — output (default: `table`)
@@ -45,7 +45,7 @@ Runs one metric by id or alias:
 - `churn` — high-churn files (`--since`, `--source-dir`)
 - `bus_factor` — full-history shortlog on `HEAD` (`--recent-since` for alerts)
 - `bug_hotspots` — commits matching fix|bug|broken (`--source-dir`, no `--since`)
-- `delivery_pace` — commits per `YYYY-MM` (full history)
+- `delivery_pace` — commits per `YYYY-MM` within `--since` (default: `1 year ago`)
 - `firefighting` — oneline subjects matching revert/hotfix/emergency/rollback (`--since`)
 
 ```bash

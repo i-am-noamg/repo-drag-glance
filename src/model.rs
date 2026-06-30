@@ -47,7 +47,9 @@ impl MetricId {
             MetricId::Churn => "Files changed most often in the time window.",
             MetricId::BusFactor => "Contributors ranked by commit count (no merges).",
             MetricId::BugHotspots => "Files touched in commits matching fix|bug|broken.",
-            MetricId::DeliveryPace => "Commit counts grouped by year-month.",
+            MetricId::DeliveryPace => {
+                "Commit counts grouped by year-month within the --since window."
+            }
             MetricId::Firefighting => {
                 "Commits whose subject matches revert/hotfix/emergency/rollback."
             }

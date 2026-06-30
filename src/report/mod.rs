@@ -99,7 +99,7 @@ fn render_table(report: &ScanReport, style: Style) -> String {
     writeln!(
         &mut buf,
         "{} {}",
-        style.header_label("Since (churn/firefighting):"),
+        style.header_label("Since (churn/firefighting/delivery pace):"),
         report.since
     )
     .unwrap();

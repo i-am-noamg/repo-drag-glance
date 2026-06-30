@@ -60,7 +60,7 @@ repo-drag-glance/
 | churn | `log --format=format: --name-only --since … [-- pathspecs]` | yes | pathspec + post-filter |
 | bus_factor | `shortlog -sn --no-merges HEAD` (+ recent window for alerts) | no | no |
 | bug_hotspots | `log -i -E --grep=fix\|bug\|broken --name-only --format= [-- pathspecs]` | no | pathspec + post-filter |
-| delivery_pace | `log --format=%ad --date=format:%Y-%m` | no | no |
+| delivery_pace | `log --format=%ad --date=format:%Y-%m --since …` | yes | no |
 | firefighting | `log --oneline --since …` + keyword filter in Rust | yes | no |
 
 File metrics count non-empty path lines (blog: `sort | uniq -c`), optionally filtered to `--source-dir` prefixes.

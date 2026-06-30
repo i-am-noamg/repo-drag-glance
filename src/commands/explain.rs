@@ -55,10 +55,13 @@ pub fn run_explain(name: &str, no_color: bool) -> anyhow::Result<()> {
             println!("  (full history; no --since in the blog command)");
         }
         MetricId::DeliveryPace => {
-            println!("  git log --format='%ad' --date=format:'%Y-%m' | sort | uniq -c");
+            println!(
+                "  git log --format='%ad' --date=format:'%Y-%m' --since=\"<since>\" | sort | uniq -c"
+            );
             println!();
             println!("{}", style.header_label("CLI equivalent:"));
-            println!("  same git args; counts in Rust.");
+            println!("  git log --format=%ad --date=format:%Y-%m --since <since>");
+            println!("  (CLI defaults --since to \"1 year ago\"; blog uses full history)");
         }
         MetricId::Firefighting => {
             println!("  git log --oneline --since=\"<since>\" | grep -iE 'revert|hotfix|emergency|rollback'");
