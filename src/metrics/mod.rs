@@ -121,11 +121,7 @@ pub fn metric_delivery_pace(opts: &ScanOptions) -> Result<MetricResult, GitError
             extra: None,
         })
         .collect();
-    let summary = format!(
-        "{} months with commits since {}",
-        rows.len(),
-        opts.since
-    );
+    let summary = format!("{} months with commits since {}", rows.len(), opts.since);
     Ok(MetricResult {
         id: MetricId::DeliveryPace,
         label: MetricId::DeliveryPace.label().to_string(),
