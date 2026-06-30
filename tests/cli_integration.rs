@@ -88,7 +88,11 @@ fn repo_drag_glance_bin() -> std::path::PathBuf {
     let target = std::env::var_os("CARGO_TARGET_DIR")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target"));
-    target.join("debug").join("repo-drag-glance")
+    #[cfg(windows)]
+    let name = "repo-drag-glance.exe";
+    #[cfg(not(windows))]
+    let name = "repo-drag-glance";
+    target.join("debug").join(name)
 }
 
 fn run_cli(args: &[&str]) -> std::process::Output {

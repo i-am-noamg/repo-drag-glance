@@ -109,13 +109,19 @@ pub fn parse_shortlog(text: &str) -> Vec<(String, u64)> {
     out
 }
 
+/// Normalize git path strings to forward slashes for consistent matching on Windows.
+fn normalize_git_path(path: &str) -> String {
+    path.replace('\\', "/")
+}
+
 /// True when `path` is under any listed source dir prefix (or when no dirs given).
 pub fn path_matches_source_dirs(path: &str, source_dirs: &[String]) -> bool {
     if source_dirs.is_empty() {
         return true;
     }
+    let path = normalize_git_path(path);
     for dir in source_dirs {
-        let prefix = dir.trim_end_matches('/');
+        let prefix = normalize_git_path(dir.trim_end_matches(['/', '\\']));
         if path == prefix || path.starts_with(&format!("{prefix}/")) {
             return true;
         }
@@ -127,14 +133,14 @@ pub fn path_matches_source_dirs(path: &str, source_dirs: &[String]) -> bool {
 pub fn count_path_lines(lines: &[String], source_dirs: &[String]) -> HashMap<String, u64> {
     let mut counts: HashMap<String, u64> = HashMap::new();
     for line in lines {
-        let t = line.trim();
+        let t = normalize_git_path(line.trim());
         if t.is_empty() {
             continue;
         }
-        if !path_matches_source_dirs(t, source_dirs) {
+        if !path_matches_source_dirs(&t, source_dirs) {
             continue;
         }
-        *counts.entry(t.to_string()).or_insert(0) += 1;
+        *counts.entry(t).or_insert(0) += 1;
     }
     counts
 }
@@ -220,7 +226,16 @@ mod tests {
         let dirs = vec!["src".to_string()];
         assert!(path_matches_source_dirs("src/lib.rs", &dirs));
         assert!(path_matches_source_dirs("src", &dirs));
+        assert!(path_matches_source_dirs(r"src\lib.rs", &dirs));
         assert!(!path_matches_source_dirs("Cargo.lock", &dirs));
+    }
+
+    #[test]
+    fn count_path_lines_normalizes_backslashes() {
+        let lines = vec![r"src\a.rs".to_string(), "src/a.rs".to_string()];
+        let dirs = vec!["src".to_string()];
+        let m = count_path_lines(&lines, &dirs);
+        assert_eq!(m.get("src/a.rs"), Some(&2));
     }
 
     #[test]

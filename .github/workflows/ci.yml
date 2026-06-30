@@ -64,7 +64,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Cargo test
+        if: matrix.os != 'windows-latest'
         run: cargo test --locked
+
+      - name: Cargo test (Windows, serialized)
+        if: matrix.os == 'windows-latest'
+        run: cargo test --locked -- --test-threads=1
 
   msrv:
     runs-on: ubuntu-latest

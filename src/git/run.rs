@@ -30,6 +30,10 @@ const SAFE_ENV_KEYS: &[&str] = &[
     "SSL_CERT_DIR",
     "SystemDrive",
     "SystemRoot",
+    "ProgramFiles",
+    "ProgramW6432",
+    "CommonProgramFiles",
+    "CommonProgramW6432",
 ];
 
 /// Run `git` with `-C repo` and given args; returns stdout as String.
