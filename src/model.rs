@@ -48,7 +48,9 @@ impl MetricId {
             MetricId::BusFactor => "Contributors ranked by commit count (no merges).",
             MetricId::BugHotspots => "Files touched in commits matching fix|bug|broken.",
             MetricId::DeliveryPace => "Commit counts grouped by year-month.",
-            MetricId::Firefighting => "Commits whose subject matches revert/hotfix/emergency/rollback.",
+            MetricId::Firefighting => {
+                "Commits whose subject matches revert/hotfix/emergency/rollback."
+            }
         }
     }
 
@@ -126,10 +128,7 @@ impl Serialize for MetricResult {
         state.serialize_field("label", &self.label)?;
         state.serialize_field("summary", &self.summary)?;
         if let Some(rows) = &self.rows {
-            state.serialize_field("rows", &NamedMetricRows {
-                id: self.id,
-                rows,
-            })?;
+            state.serialize_field("rows", &NamedMetricRows { id: self.id, rows })?;
         }
         if let Some(scalar) = self.scalar {
             state.serialize_field("scalar", &scalar)?;

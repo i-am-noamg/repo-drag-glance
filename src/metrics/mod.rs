@@ -1,12 +1,12 @@
 use std::path::Path;
 
+use crate::git::GitError;
 use crate::git::{
     count_by_month, count_firefighting_lines, count_path_lines, log_bug_hotspots,
     log_commit_months, log_name_only_since, log_oneline_since, parse_shortlog, shortlog_sn_all,
     shortlog_sn_since, top_n_counts,
 };
 use crate::model::{MetricId, MetricResult, MetricRow};
-use crate::git::GitError;
 
 /// Default `--since` for churn / firefighting when not specified.
 pub const DEFAULT_SINCE: &str = "1 year ago";
@@ -66,7 +66,11 @@ pub fn metric_bus_factor(opts: &ScanOptions) -> Result<MetricResult, GitError> {
         })
         .collect();
     let total: u64 = parsed.iter().map(|(_, n)| n).sum();
-    let summary = format!("{} contributors, {} commits (full history on HEAD)", rows.len(), total);
+    let summary = format!(
+        "{} contributors, {} commits (full history on HEAD)",
+        rows.len(),
+        total
+    );
     Ok(MetricResult {
         id: MetricId::BusFactor,
         label: MetricId::BusFactor.label().to_string(),
@@ -77,9 +81,7 @@ pub fn metric_bus_factor(opts: &ScanOptions) -> Result<MetricResult, GitError> {
 }
 
 /// Recent-window shortlog for bus-factor alerts (not a standalone metric).
-pub fn bus_factor_recent_authors(
-    opts: &ScanOptions,
-) -> Result<Vec<(String, u64)>, GitError> {
+pub fn bus_factor_recent_authors(opts: &ScanOptions) -> Result<Vec<(String, u64)>, GitError> {
     let text = shortlog_sn_since(opts.repo, opts.recent_since)?;
     Ok(parse_shortlog(&text))
 }

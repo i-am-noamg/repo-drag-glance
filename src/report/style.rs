@@ -1,4 +1,4 @@
-use std::io::{IsTerminal, stdout};
+use std::io::{stdout, IsTerminal};
 
 use colored::ColoredString;
 use colored::Colorize;
@@ -11,8 +11,7 @@ pub struct Style {
 
 impl Style {
     pub fn new(no_color: bool) -> Self {
-        let enabled =
-            stdout().is_terminal() && !no_color && std::env::var_os("NO_COLOR").is_none();
+        let enabled = stdout().is_terminal() && !no_color && std::env::var_os("NO_COLOR").is_none();
         Self { enabled }
     }
 

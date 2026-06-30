@@ -8,19 +8,20 @@ pub fn run_explain(name: &str, no_color: bool) -> anyhow::Result<()> {
     let Some(id) = MetricId::parse(name) else {
         bail!("unknown metric {:?}; try: churn, bus_factor, bug_hotspots, delivery_pace, firefighting", name);
     };
+    println!("{} ({})", style.section(id.label()), id.as_str());
+    println!();
+    println!("{}", style.summary(id.description()));
+    println!();
     println!(
-        "{} ({})",
-        style.section(&id.label()),
-        id.as_str()
+        "{}",
+        style.header_label("Blogpost command (from docs/blogpost.md):")
     );
-    println!();
-    println!("{}", style.summary(&id.description()));
-    println!();
-    println!("{}", style.header_label("Blogpost command (from docs/blogpost.md):"));
     println!();
     match id {
         MetricId::Churn => {
-            println!("  # Run from source dirs (not repo root); CLI: --source-dir src --source-dir apps");
+            println!(
+                "  # Run from source dirs (not repo root); CLI: --source-dir src --source-dir apps"
+            );
             println!("  git log --format=format: --name-only --since=\"<since>\" -- <source-dirs>");
             println!("    | sort | uniq -c | sort -nr | head -<top>");
             println!();
@@ -31,13 +32,18 @@ pub fn run_explain(name: &str, no_color: bool) -> anyhow::Result<()> {
         MetricId::BusFactor => {
             println!("  git shortlog -sn --no-merges");
             println!();
-            println!("{}", style.header_label("Secondary window (departed-contributor check):"));
+            println!(
+                "{}",
+                style.header_label("Secondary window (departed-contributor check):")
+            );
             println!("  git shortlog -sn --no-merges --since=\"<recent-since>\"");
             println!();
             println!("{}", style.header_label("CLI equivalent:"));
             println!("  git shortlog -sn --no-merges HEAD");
             println!("  git shortlog -sn --no-merges --since <recent-since> HEAD");
-            println!("`HEAD` is passed so shortlog does not read from stdin (empty under closed stdin).");
+            println!(
+                "`HEAD` is passed so shortlog does not read from stdin (empty under closed stdin)."
+            );
         }
         MetricId::BugHotspots => {
             println!("  # Same source-dir scoping as churn");

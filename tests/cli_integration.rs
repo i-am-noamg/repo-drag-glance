@@ -41,7 +41,10 @@ fn init_fixture_repo(root: &Path) {
     fs::write(root.join("src/lib.rs"), "// lib fix bug\n").unwrap();
     git(root, &["add", "."]);
     git(root, &["commit", "-m", "fix bug in lib"]);
-    git(root, &["commit", "--allow-empty", "-m", "Revert bad deploy"]);
+    git(
+        root,
+        &["commit", "--allow-empty", "-m", "Revert bad deploy"],
+    );
 }
 
 fn old_author_env() -> [(&'static str, &'static str); 6] {
@@ -157,8 +160,7 @@ fn metrics_single_churn_json() {
     ]);
 
     assert!(out.status.success());
-    let v: serde_json::Value =
-        serde_json::from_slice(&out.stdout).expect("valid JSON");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("valid JSON");
     assert_eq!(v["metrics"].as_array().map(|a| a.len()), Some(1));
 }
 
@@ -205,7 +207,11 @@ fn source_dir_excludes_root_lockfile_from_churn() {
         "--format",
         "json",
     ]);
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     let rows = v["metrics"][0]["rows"].as_array().unwrap();
@@ -214,7 +220,7 @@ fn source_dir_excludes_root_lockfile_from_churn() {
         .filter_map(|r| r.get("file").and_then(|k| k.as_str()))
         .collect();
     assert!(keys.iter().any(|k| k.starts_with("src/")));
-    assert!(!keys.iter().any(|k| *k == "Cargo.lock"));
+    assert!(!keys.contains(&"Cargo.lock"));
 }
 
 #[test]
@@ -238,7 +244,8 @@ fn bug_hotspots_finds_fix_commit_without_since() {
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     let rows = v["metrics"][0]["rows"].as_array().unwrap();
     assert!(
-        rows.iter().any(|r| r.get("file").and_then(|k| k.as_str()) == Some("src/lib.rs")),
+        rows.iter()
+            .any(|r| r.get("file").and_then(|k| k.as_str()) == Some("src/lib.rs")),
         "expected src/lib.rs in bug hotspots"
     );
 }
@@ -284,7 +291,11 @@ fn bus_factor_departed_top_contributor_alert() {
         "--format",
         "json",
     ]);
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     let alerts = v["alerts"].as_array().unwrap();

@@ -21,10 +21,7 @@ pub fn check_has_commits(repo: &Path) -> Result<(), GitError> {
 
 /// Lines of `git log --oneline --since=...`
 pub fn log_oneline_since(repo: &Path, since: &str) -> Result<Vec<String>, GitError> {
-    let out = git_stdout(
-        repo,
-        &["log", "--oneline", "--since", since],
-    )?;
+    let out = git_stdout(repo, &["log", "--oneline", "--since", since])?;
     Ok(out
         .lines()
         .map(str::trim)
@@ -66,14 +63,7 @@ pub fn log_bug_hotspots(repo: &Path, pathspecs: &[&str]) -> Result<Vec<String>, 
 
 /// One line per commit: `%ad` with month format.
 pub fn log_commit_months(repo: &Path) -> Result<Vec<String>, GitError> {
-    let out = git_stdout(
-        repo,
-        &[
-            "log",
-            "--format=%ad",
-            "--date=format:%Y-%m",
-        ],
-    )?;
+    let out = git_stdout(repo, &["log", "--format=%ad", "--date=format:%Y-%m"])?;
     Ok(out
         .lines()
         .map(str::trim)

@@ -109,7 +109,11 @@ pub fn build_report(
     }
 }
 
-fn file_keys(metrics: &[MetricResult], id: MetricId, top: usize) -> std::collections::HashSet<String> {
+fn file_keys(
+    metrics: &[MetricResult],
+    id: MetricId,
+    top: usize,
+) -> std::collections::HashSet<String> {
     let mut set = std::collections::HashSet::new();
     let Some(m) = metrics.iter().find(|m| m.id == id) else {
         return set;
@@ -132,7 +136,9 @@ fn top_author_share(metrics: &[MetricResult], id: MetricId) -> Option<(String, u
     let m = metrics.iter().find(|m| m.id == id)?;
     let rows = m.rows.as_ref()?;
     let top = rows.first()?;
-    let total = m.scalar.unwrap_or_else(|| rows.iter().map(|r| r.value).sum());
+    let total = m
+        .scalar
+        .unwrap_or_else(|| rows.iter().map(|r| r.value).sum());
     Some((top.key.clone(), top.value, total))
 }
 

@@ -46,13 +46,7 @@ fn render_table(report: &ScanReport, style: Style) -> String {
     if !report.warnings.is_empty() {
         writeln!(&mut buf).unwrap();
     }
-    writeln!(
-        &mut buf,
-        "{} {}",
-        style.header_label("Repo:"),
-        report.repo
-    )
-    .unwrap();
+    writeln!(&mut buf, "{} {}", style.header_label("Repo:"), report.repo).unwrap();
     writeln!(
         &mut buf,
         "{} {}",
@@ -70,9 +64,8 @@ fn render_table(report: &ScanReport, style: Style) -> String {
     if report.source_dirs.is_empty() {
         writeln!(
             &mut buf,
-            "{} {}",
-            style.header_label("Source dirs:"),
-            "(none — whole repo for file metrics)"
+            "{} (none — whole repo for file metrics)",
+            style.header_label("Source dirs:")
         )
         .unwrap();
     } else {
@@ -86,12 +79,7 @@ fn render_table(report: &ScanReport, style: Style) -> String {
     }
     writeln!(&mut buf).unwrap();
     for m in &report.metrics {
-        writeln!(
-            &mut buf,
-            "{}",
-            style.section(&format!("== {} ==", m.label))
-        )
-        .unwrap();
+        writeln!(&mut buf, "{}", style.section(&format!("== {} ==", m.label))).unwrap();
         writeln!(&mut buf, "{}", style.summary(&m.summary)).unwrap();
         if let Some(rows) = &m.rows {
             if !rows.is_empty() {
@@ -128,13 +116,7 @@ fn render_table(report: &ScanReport, style: Style) -> String {
             )
             .unwrap();
             if let Some(e) = &a.evidence {
-                writeln!(
-                    &mut buf,
-                    "  {} {}",
-                    style.evidence_label("evidence:"),
-                    e
-                )
-                .unwrap();
+                writeln!(&mut buf, "  {} {}", style.evidence_label("evidence:"), e).unwrap();
             }
         }
     }
