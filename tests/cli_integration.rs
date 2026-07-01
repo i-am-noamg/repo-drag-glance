@@ -113,7 +113,7 @@ fn scan_json_has_metrics_and_alerts() {
         "--repo",
         repo.to_str().unwrap(),
         "--since",
-        "2000 years ago",
+        "1970-01-01",
         "--format",
         "json",
     ]);
@@ -158,7 +158,7 @@ fn metrics_single_churn_json() {
         "--repo",
         repo.to_str().unwrap(),
         "--since",
-        "2000 years ago",
+        "1970-01-01",
         "--format",
         "json",
     ]);
@@ -207,7 +207,7 @@ fn source_dir_excludes_root_lockfile_from_churn() {
         "--source-dir",
         "src",
         "--since",
-        "2000 years ago",
+        "1970-01-01",
         "--format",
         "json",
     ]);

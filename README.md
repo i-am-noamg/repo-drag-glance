@@ -6,11 +6,11 @@ Five **git log** drag diagnostics on an unfamiliar codebase before you open a fi
 hotspots, bus factor, bug clusters, delivery pace, and firefighting-style commits,
 plus lightweight alert hints.
 
-`[docs/blogpost.md` is a markdown version of the original blogpost.
+[docs/blogpost.md](docs/blogpost.md) is a markdown version of the original blogpost.
 
 ## Quick start
 
-Requirements: **Rust** (see `rust-version` in `[Cargo.toml](Cargo.toml)`), **git** on `PATH`, and a repo with **at least one commit**.
+Requirements: **Rust** (see `rust-version` in [Cargo.toml](Cargo.toml)), **git** on `PATH`, and a repo with **at least one commit**.
 
 ```bash
 cargo build
@@ -34,10 +34,10 @@ repo-drag-glance scan --repo /path/to/repo
 
 ## Documentation
 
-- `[docs/README.md](docs/README.md)` — doc index for humans and agents
-- `[docs/cli-usage.md](docs/cli-usage.md)` — commands, flags, install, tests
-- `[docs/architecture.md](docs/architecture.md)` — Rust layout and guardrails
-- `[docs/git-metrics.md](docs/git-metrics.md)` — what each signal means
+- [docs/README.md](docs/README.md) — doc index for humans and agents
+- [docs/cli-usage.md](docs/cli-usage.md) — commands, flags, install, tests
+- [docs/architecture.md](docs/architecture.md) — Rust layout and guardrails
+- [docs/git-metrics.md](docs/git-metrics.md) — what each signal means
 
 
 
